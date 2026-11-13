@@ -31,6 +31,13 @@ jobs:
           cache: maven
       - name: mvn verify
         run: mvn -B -ntp verify 2>&1 | tee /tmp/mvn.log; exit ${PIPESTATUS[0]}
+      - name: Guardar o jar (usado no smoke test e para baixar)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: backend/target/tem-direito-backend.jar
+          retention-days: 7
       - name: Comentar erro no commit
         if: failure() && github.event_name == 'push'
         env:

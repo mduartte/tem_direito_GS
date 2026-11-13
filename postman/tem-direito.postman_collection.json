@@ -1,0 +1,750 @@
+{
+  "info": {
+    "name": "Tem Direito · API",
+    "description": "Fluxo do cidadão, painel em duas etapas, gestão de regras, automações e assistente. Rode em ordem (Runner). Variável api = http://localhost:8081/api.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "api",
+      "value": "http://localhost:8081/api"
+    },
+    {
+      "key": "codigo",
+      "value": ""
+    },
+    {
+      "key": "chave",
+      "value": ""
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "codigoTeste",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Cidadão",
+      "item": [
+        {
+          "name": "Avaliar respostas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{api}}/triagens/avaliar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pessoas\": 1,\n  \"idade\": 70,\n  \"pcd\": \"nao\",\n  \"renda\": 0,\n  \"aposent\": \"nao\",\n  \"criancas\": \"nao\",\n  \"grupos\": [],\n  \"cad\": \"nao\",\n  \"remedio\": \"sim\",\n  \"luz\": \"sim\",\n  \"bairro\": \"Jardim Ângela\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 e 29 benefícios', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().resultado.length).to.eql(29); });",
+                  "pm.test('BPC Idoso provável', () => pm.expect(pm.response.json().resultado.find(b=>b.id==='bpci').status).to.eql('prov'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar sem consentimento (deve recusar)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{api}}/triagens",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"respostas\": {\n    \"pessoas\": 1,\n    \"idade\": 70,\n    \"pcd\": \"nao\",\n    \"renda\": 0,\n    \"aposent\": \"nao\",\n    \"criancas\": \"nao\",\n    \"grupos\": [],\n    \"cad\": \"nao\",\n    \"remedio\": \"sim\",\n    \"luz\": \"sim\",\n    \"bairro\": \"Jardim Ângela\"\n  },\n  \"consentimento\": false\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400 sem consentimento', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar triagem anônima",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{api}}/triagens",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"respostas\": {\n    \"pessoas\": 1,\n    \"idade\": 70,\n    \"pcd\": \"nao\",\n    \"renda\": 0,\n    \"aposent\": \"nao\",\n    \"criancas\": \"nao\",\n    \"grupos\": [],\n    \"cad\": \"nao\",\n    \"remedio\": \"sim\",\n    \"luz\": \"sim\",\n    \"bairro\": \"Jardim Ângela\"\n  },\n  \"consentimento\": true,\n  \"autorizou\": true,\n  \"canal\": \"App\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json(); pm.collectionVariables.set('codigo', j.codigo); pm.collectionVariables.set('chave', j.chave);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar com chave errada (403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Chave",
+                "value": "errada"
+              }
+            ],
+            "url": "{{api}}/triagens/{{codigo}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Marcar lembrete",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Chave",
+                "value": "{{chave}}"
+              }
+            ],
+            "url": "{{api}}/triagens/{{codigo}}/lembretes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": \"2030-01-15\",\n  \"canal\": \"app\",\n  \"localNome\": \"CRAS Vila Santa Lúcia\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Retorno: faltou documento",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Chave",
+                "value": "{{chave}}"
+              }
+            ],
+            "url": "{{api}}/triagens/{{codigo}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"retorno\": \"faltou\",\n  \"falta\": \"Comprovante de endereço\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('travado', () => pm.expect(pm.response.json().etapa).to.eql('travado'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CEP do território",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{api}}/cep/04938000"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Jardim Ângela', () => pm.expect(pm.response.json().bairro).to.eql('Jardim Ângela'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Pontos de atendimento",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{api}}/pontos?tipo=CRAS"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('6 CRAS', () => pm.expect(pm.response.json().length).to.eql(6));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Assistente: golpe",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{api}}/assistente/perguntar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pergunta\": \"Me pediram um pix para liberar o Bolsa Família\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('responde', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Painel",
+      "item": [
+        {
+          "name": "Login (etapa 1)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{api}}/auth/painel/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ana.ribeiro@prefeitura.sp.gov.br\",\n  \"senha\": \"demo2026\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('pede código', () => pm.expect(pm.response.json().etapa).to.eql('codigo'));",
+                  "pm.collectionVariables.set('codigoTeste', pm.response.json().codigoTeste);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Código (etapa 2)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{api}}/auth/painel/verificar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ana.ribeiro@prefeitura.sp.gov.br\",\n  \"codigo\": \"{{codigoTeste}}\",\n  \"lembrar\": false\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('token', () => pm.expect(pm.response.json().token).to.be.a('string'));",
+                  "pm.collectionVariables.set('token', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Visão geral",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{api}}/painel/visao-geral?per=60"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('8 semanas', () => pm.expect(pm.response.json().semanas.length).to.eql(8));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalhe da triagem registrada",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{api}}/painel/triagens/{{codigo}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('sem dados pessoais', () => { const j = pm.response.json(); pm.expect(j).to.not.have.property('nome'); pm.expect(j).to.not.have.property('cpf'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Avisar família",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{api}}/painel/triagens/{{codigo}}/avisar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"texto\": \"Volte com o comprovante de endereço.\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Executar retornos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{api}}/painel/automacoes/retornos/executar"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('registrado', () => pm.expect(pm.response.json().tarefa).to.eql('retornos'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Relatório CSV",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{api}}/painel/relatorios/bairros.csv"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('CSV', () => pm.expect(pm.response.text()).to.include('bairro;triagens'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Gestão (perfil gestor)",
+      "item": [
+        {
+          "name": "Login gestor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{api}}/auth/painel/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"mateus.duarte@temdireito.org\",\n  \"senha\": \"demo2026\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('codigoTeste', pm.response.json().codigoTeste);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Código gestor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{api}}/auth/painel/verificar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"mateus.duarte@temdireito.org\",\n  \"codigo\": \"{{codigoTeste}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('token', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simular com rascunho",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{api}}/gestao/simular",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"respostas\": {\n    \"pessoas\": 1,\n    \"idade\": 70,\n    \"pcd\": \"nao\",\n    \"renda\": 0,\n    \"aposent\": \"nao\",\n    \"criancas\": \"nao\",\n    \"grupos\": [],\n    \"cad\": \"nao\",\n    \"remedio\": \"sim\",\n    \"luz\": \"sim\",\n    \"bairro\": \"Jardim Ângela\"\n  },\n  \"rascunhos\": {\n    \"bpcI\": {\n      \"frac\": 0.25,\n      \"idade\": 65\n    }\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('10 casos passam', () => pm.expect(pm.response.json().casos.filter(c=>c.passou).length).to.eql(10));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Salvar rascunho",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{api}}/gestao/regras/tar/rascunho",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"frac\": 0.5,\n  \"kwh\": 90\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publicar sem revisor (deve recusar)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{api}}/gestao/regras/tar/publicar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"teste\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publicar com revisão",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{api}}/gestao/regras/tar/publicar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"revisor\": \"Ana Ribeiro\",\n  \"motivo\": \"Novo limite de consumo\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('nova versão', () => pm.expect(pm.response.json().versao).to.be.above(4));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Histórico",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{api}}/gestao/historico"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('tem registros', () => pm.expect(pm.response.json().length).to.be.above(0));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. LGPD",
+      "item": [
+        {
+          "name": "Apagar triagem",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Chave",
+                "value": "{{chave}}"
+              }
+            ],
+            "url": "{{api}}/triagens/{{codigo}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirmar que sumiu",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Chave",
+                "value": "{{chave}}"
+              }
+            ],
+            "url": "{{api}}/triagens/{{codigo}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
