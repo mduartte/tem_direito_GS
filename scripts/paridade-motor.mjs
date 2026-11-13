@@ -75,7 +75,9 @@ const esperado = perfis.map(serializar).join('\n') + '\n';
 
 // Compila o motor Java puro (sem Spring) e o harness.
 const fontes = [];
-(function andar(d) { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) andar(p); else if (f.endsWith('.java')) fontes.push(p); } })(join(raiz, 'backend/src/main/java/br/com/temdireito/regras'));
+// Só o pacote do motor (sem subpastas): regras/servico depende do Spring e não entra na comparação.
+const pastaMotor = join(raiz, 'backend/src/main/java/br/com/temdireito/regras');
+for (const f of readdirSync(pastaMotor)) { const p = join(pastaMotor, f); if (!statSync(p).isDirectory() && f.endsWith('.java')) fontes.push(p); }
 fontes.push(join(raiz, 'scripts/paridade/Paridade.java'));
 const classes = join(tmp, 'classes');
 execFileSync('javac', ['-encoding', 'UTF-8', '-d', classes, ...fontes], { stdio: 'inherit' });

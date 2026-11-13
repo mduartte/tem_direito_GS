@@ -1,0 +1,6 @@
+/* Ajustes do React sobre o CSS do protótipo (o mapa agora é Leaflet, não SVG). */
+.mapbox { position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); z-index: 0; }
+.mapbox .leaflet-container { font-family: var(--font); background: #eef2ef; }
+.leaflet-tooltip { font-family: var(--font); font-size: 12px; }
+.p-side a.active { background: var(--active); color: var(--ink); font-weight: 500; }
+.c-nav a.active { color: var(--ink); font-weight: 600; }
