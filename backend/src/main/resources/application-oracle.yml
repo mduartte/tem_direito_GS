@@ -1,0 +1,19 @@
+# Perfil de produção com Oracle (Oracle Autonomous Database ou Oracle Free no Docker).
+# Ative com SPRING_PROFILES_ACTIVE=oracle e informe DB_URL, DB_USER e DB_PASSWORD.
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:oracle:thin:@//localhost:1521/FREEPDB1}
+    username: ${DB_USER:temdireito}
+    password: ${DB_PASSWORD:temdireito}
+    driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    database-platform: org.hibernate.dialect.OracleDialect
+  flyway:
+    # No Oracle entram também o pacote PL/SQL, os triggers de auditoria e as views do painel.
+    locations: classpath:db/migration/comum,classpath:db/migration/oracle
+  h2:
+    console:
+      enabled: false
+
+app:
+  expor-codigo-teste: ${EXPOR_CODIGO_TESTE:false}

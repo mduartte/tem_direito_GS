@@ -1,0 +1,84 @@
+# CI do Tem Direito.
+# Por que cada job existe:
+# - backend: compila o Spring Boot e roda os testes JUnit (motor, kit, API).
+#   Se falhar, comenta o fim do log no próprio commit, para quem não abre o
+#   Actions ver o erro direto no GitHub.
+# - paridade: garante que o motor Java dá o mesmo resultado do protótipo (regra 6 do CLAUDE.md).
+# - ia-service: testes do assistente (RAG, modo local, regras de segurança).
+# - frontend: testes e build de produção da PWA.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: mvn verify
+        run: mvn -B -ntp verify 2>&1 | tee /tmp/mvn.log; exit ${PIPESTATUS[0]}
+      - name: Comentar erro no commit
+        if: failure() && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          grep -E "ERROR|FAIL|Tests run:.*Fail|expected|but was|Caused by" /tmp/mvn.log | head -60 > /tmp/erros.txt || true
+          tail -40 /tmp/mvn.log >> /tmp/erros.txt
+          jq -Rs '{body: ("Falha no backend:\n```\n" + .[0:60000] + "\n```")}' /tmp/erros.txt > /tmp/body.json
+          gh api repos/${{ github.repository }}/commits/${{ github.sha }}/comments --input /tmp/body.json
+
+  paridade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node scripts/paridade-motor.mjs
+
+  ia-service:
+    runs-on: ubuntu-latest
+    if: hashFiles('ia-service/requirements.txt') != ''
+    defaults:
+      run:
+        working-directory: ia-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    if: hashFiles('frontend/package.json') != ''
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: npm test --if-present
+      - run: npm run build
