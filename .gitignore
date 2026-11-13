@@ -38,3 +38,7 @@ data/
 # Testes de ponta a ponta
 test-results/
 playwright-report/
+__pycache__/
+.pytest_cache/
+*.pyc
+.venv/
