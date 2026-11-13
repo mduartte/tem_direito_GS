@@ -91,3 +91,53 @@ jobs:
         run: npm test --if-present
       - if: hashFiles('frontend/package.json') != ''
         run: npm run build
+
+  # Ponta a ponta: sobe backend (jar do job anterior), ia-service e frontend, e roda
+  # o smoke test da API e o da interface (Playwright).
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [backend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-jar
+          path: dist-backend
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Subir ia-service
+        run: |
+          pip install -r ia-service/requirements.txt
+          cd ia-service && nohup uvicorn app.main:app --port 8000 > ../ia.log 2>&1 &
+      - name: Subir backend
+        run: nohup java -jar dist-backend/tem-direito-backend.jar > backend.log 2>&1 &
+      - name: Build e preview do frontend
+        run: |
+          cd frontend && npm install --no-audit --no-fund && npm run build
+          nohup npx vite preview --port 4173 > ../front.log 2>&1 &
+      - name: Esperar os serviços
+        run: |
+          for i in $(seq 1 90); do curl -sf http://localhost:8081/actuator/health && curl -sf http://localhost:8000/saude && curl -sf http://localhost:4173 >/dev/null && break; sleep 2; done
+      - name: Smoke test da API
+        run: node scripts/smoke-e2e.mjs http://localhost:4173
+      - name: Smoke test da interface
+        run: |
+          cd frontend && npm install --no-save playwright@1.49.1 && npx playwright install --with-deps chromium
+          node ../scripts/smoke-ui.mjs http://localhost:4173
+      - name: Logs em caso de falha
+        if: failure()
+        run: tail -80 backend.log; tail -30 ia.log; tail -20 front.log
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: smoke-ui-falha
+          path: frontend/smoke-ui-falha.png
+          if-no-files-found: ignore
