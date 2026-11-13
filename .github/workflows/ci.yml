@@ -56,7 +56,6 @@ jobs:
 
   ia-service:
     runs-on: ubuntu-latest
-    if: hashFiles('ia-service/requirements.txt') != ''
     defaults:
       run:
         working-directory: ia-service
@@ -70,7 +69,6 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
-    if: hashFiles('frontend/package.json') != ''
     defaults:
       run:
         working-directory: frontend
@@ -79,6 +77,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm install
-      - run: npm test --if-present
-      - run: npm run build
+      # hashFiles só funciona em passos (não no job): pula enquanto o frontend não existir.
+      - if: hashFiles('frontend/package.json') != ''
+        run: npm install
+      - if: hashFiles('frontend/package.json') != ''
+        run: npm test --if-present
+      - if: hashFiles('frontend/package.json') != ''
+        run: npm run build
