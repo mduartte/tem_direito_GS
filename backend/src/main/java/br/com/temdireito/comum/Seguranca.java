@@ -33,10 +33,29 @@ public class Seguranca {
     private final String sal;
 
     public Seguranca(AppProperties props) {
-        this.chave = Base64.getDecoder().decode(props.criptoChave());
+        this.chave = derivarChave(props.criptoChave());
         this.sal = props.hashSal();
-        if (chave.length != 16 && chave.length != 24 && chave.length != 32) {
-            throw new IllegalStateException("app.cripto-chave precisa ser base64 de 16, 24 ou 32 bytes");
+    }
+
+    /**
+     * Aceita a chave em base64 (16, 24 ou 32 bytes). Se vier em outro formato
+     * (por exemplo, um segredo gerado pela hospedagem), deriva 32 bytes com SHA-256,
+     * para o deploy não quebrar por causa do formato do segredo.
+     */
+    static byte[] derivarChave(String segredo) {
+        if (segredo == null || segredo.isBlank()) {
+            throw new IllegalStateException("app.cripto-chave não configurada");
+        }
+        try {
+            byte[] b = Base64.getDecoder().decode(segredo.trim());
+            if (b.length == 16 || b.length == 24 || b.length == 32) return b;
+        } catch (IllegalArgumentException ignorado) {
+            // não é base64: cai na derivação abaixo
+        }
+        try {
+            return java.security.MessageDigest.getInstance("SHA-256").digest(segredo.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
         }
     }
 

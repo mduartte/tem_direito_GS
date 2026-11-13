@@ -69,7 +69,8 @@ public class SecurityConfig {
 
     private CorsConfigurationSource cors(AppProperties props) {
         CorsConfiguration c = new CorsConfiguration();
-        c.setAllowedOrigins(props.corsOrigens() == null ? List.of() : props.corsOrigens());
+        // Padrões (ex.: https://*.onrender.com) para o frontend hospedado em outro domínio.
+        c.setAllowedOriginPatterns(props.corsOrigens() == null ? List.of() : props.corsOrigens());
         c.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         c.setAllowedHeaders(List.of("*"));
         c.setExposedHeaders(List.of("Content-Disposition"));

@@ -64,6 +64,11 @@ docker compose -f infra/docker-compose.yml up --build
 
 Para usar Oracle em vez de H2: `docker compose -f infra/docker-compose.yml --profile oracle up --build`.
 
+### No ar (Render, gratuito)
+
+`render.yaml` cria os três serviços num clique (Dashboard → New → Blueprint). Passo a passo e
+limitações do plano gratuito em `docs/deploy-render.md`. Azure: `infra/azure.md`.
+
 ### Cada parte separada
 
 ```bash

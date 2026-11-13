@@ -1,7 +1,10 @@
 // Única porta de saída HTTP do frontend (convenção do CLAUDE.md: chamadas só em src/api).
 // Guarda o token do painel e o da conta do cidadão separados, porque são papéis diferentes.
 
-const BASE = import.meta.env.VITE_API_URL || '/api';
+// Em produção com frontend e API em domínios diferentes (ex.: Render), VITE_API_ORIGIN
+// traz o endereço da API sem "/api"; sem ela, usa o proxy do mesmo domínio.
+const ORIGEM = import.meta.env.VITE_API_ORIGIN;
+const BASE = ORIGEM ? ORIGEM.replace(/\/$/, '') + '/api' : (import.meta.env.VITE_API_URL || '/api');
 
 export class ErroApi extends Error {
   constructor(status, mensagem) {

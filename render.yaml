@@ -1,0 +1,78 @@
+# Deploy completo no Render (plano gratuito) com um clique: Dashboard → New → Blueprint → este repositório.
+# Três serviços:
+#   tem-direito-ia   → assistente (FastAPI). Modo local sem chave; com ANTHROPIC_API_KEY usa IA.
+#   tem-direito-api  → backend Spring Boot com H2 em memória e dados de demonstração.
+#   tem-direito-app  → PWA estática; chama a API pelo endereço público dela.
+# No plano gratuito, serviço web não recebe tráfego da rede privada, por isso a ligação
+# entre eles usa o endereço público (RENDER_EXTERNAL_URL) e o CORS libera *.onrender.com.
+services:
+  - type: web
+    name: tem-direito-ia
+    runtime: docker
+    plan: free
+    region: virginia
+    dockerContext: ./ia-service
+    dockerfilePath: ./ia-service/Dockerfile
+    healthCheckPath: /saude
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: ANTHROPIC_API_KEY
+        sync: false   # opcional: preencha no painel do Render para o chatbot usar IA
+      - key: IA_MODELO
+        value: claude-haiku-5-5
+
+  - type: web
+    name: tem-direito-api
+    runtime: docker
+    plan: free
+    region: virginia
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: PORT
+        value: "8081"
+      - key: IA_SERVICE_URL
+        fromService:
+          type: web
+          name: tem-direito-ia
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: CORS_ORIGENS
+        value: https://*.onrender.com,http://localhost:5173,http://localhost:8080
+      - key: JWT_SEGREDO
+        generateValue: true
+      - key: CRIPTO_CHAVE
+        generateValue: true
+      - key: HASH_SAL
+        generateValue: true
+      # Demonstração: sem SMS nem e-mail reais, o código de verificação aparece na tela.
+      - key: APP_DEMO
+        value: "true"
+      - key: EXPOR_CODIGO_TESTE
+        value: "true"
+      - key: H2_CONSOLE
+        value: "false"
+      - key: JAVA_TOOL_OPTIONS
+        value: -XX:+UseSerialGC -Xss512k   # menos memória: o plano gratuito tem 512 MB
+
+  - type: web
+    name: tem-direito-app
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install --no-audit --no-fund && npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /sw.js
+        name: Cache-Control
+        value: no-cache
+    envVars:
+      - key: VITE_API_ORIGIN
+        fromService:
+          type: web
+          name: tem-direito-api
+          envVarKey: RENDER_EXTERNAL_URL
