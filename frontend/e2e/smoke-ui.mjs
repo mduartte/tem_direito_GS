@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Smoke test de interface com Playwright: faz a triagem como uma pessoa faria,
 // pergunta ao assistente e entra no painel com as duas etapas.
-// Uso: node scripts/smoke-ui.mjs [http://localhost:4173]
+// Uso (dentro de frontend/, com playwright instalado): node e2e/smoke-ui.mjs [http://localhost:4173]
 import { chromium } from 'playwright';
 
 const URL = process.argv[2] || 'http://localhost:4173';

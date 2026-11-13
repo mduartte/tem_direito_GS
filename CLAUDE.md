@@ -93,7 +93,11 @@ cd backend && mvn verify            # JUnit: motor de regras, kit, API, seguran�
 cd ia-service && pytest             # RAG, modo local, regras de segurança
 cd frontend && npm test && npm run build
 node scripts/paridade-motor.mjs     # compara o motor Java com o motor do protótipo
+node scripts/smoke-e2e.mjs http://localhost:8080   # ponta a ponta da API (serviços no ar)
+cd frontend && node e2e/smoke-ui.mjs http://localhost:4173   # interface (Playwright)
 ```
+
+Coleção Postman com os mesmos fluxos: `postman/tem-direito.postman_collection.json`.
 
 O CI (`.github/workflows/ci.yml`) roda tudo isso e um smoke test de ponta a
 ponta com Playwright contra os três serviços no ar.
@@ -163,3 +167,20 @@ Cada commit deve deixar o projeto compilando e com os testes passando.
 | Nova tela | `frontend/src/telas/`, rota em `frontend/src/App.jsx` |
 | Nova automação | `backend/src/main/java/br/com/temdireito/automacao/` |
 | Comportamento do assistente | `ia-service/app/prompt.py` (regras) e `ia-service/app/rag.py` (busca) |
+| Telas do cidadão | `frontend/src/telas/cidadao/` (A1–A18, D1–D11) |
+| Telas do painel, gestão e unidade | `frontend/src/telas/painel/` (B1–B6, E1, E5), `telas/gestao/` (C1–C6), `telas/config/` (E2–E4) |
+| Horário das automações | `@Scheduled` em `AutomacaoService.java` (fuso America/Sao_Paulo) |
+| Dados de demonstração | `demo/DemoSeeder.java` (port do `gerarDemo()` do protótipo, mesma semente) |
+
+## 9. Mapa de telas e rotas
+
+| Tela | Rota | Wireframe |
+|---|---|---|
+| Início, para quem, perguntas, consentimento | `/`, `/modo`, `/triagem`, `/consentimento` | A1–A12, D1, D9 |
+| Resultado, benefício, kit, onde ir, lembrete | `/resultado`, `/beneficio/:id`, `/kit`, `/onde-ir`, `/lembrete` | A13–A16 |
+| Meus direitos, negado, minhas respostas | `/meus-direitos`, `/negado/:id`, `/perfil` | A17, A18, D5–D8 |
+| Conta, código, privacidade, apagar | `/conta`, `/entrar`, `/codigo`, `/privacidade`, `/apagar` | D2–D4, D11 |
+| Tire dúvidas (assistente) | `/duvidas` | A11 |
+| Painel: entrar, código, visão, mapa, encaminhamentos, detalhe, relatórios, automações | `/painel/...` | B1–B6, E5 |
+| Gestão: benefícios, regras, simulador, documentos, histórico, pontos | `/gestao/...` | C1–C6 |
+| Unidade: dados, equipe, preferências; pedido de acesso | `/config/...`, `/acesso` | E1–E4 |

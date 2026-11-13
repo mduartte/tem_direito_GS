@@ -131,7 +131,7 @@ jobs:
       - name: Smoke test da interface
         run: |
           cd frontend && npm install --no-save playwright@1.49.1 && npx playwright install --with-deps chromium
-          node ../scripts/smoke-ui.mjs http://localhost:4173
+          node e2e/smoke-ui.mjs http://localhost:4173
       - name: Logs em caso de falha
         if: failure()
         run: tail -80 backend.log; tail -30 ia.log; tail -20 front.log
