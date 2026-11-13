@@ -130,8 +130,11 @@ ponta com Playwright contra os três serviços no ar.
 - Frontend: componentes por tela em `src/telas`, peças reutilizáveis em
   `src/componentes`, chamadas HTTP só em `src/api`, estado do cidadão em
   `src/estado`.
-- Valores de dinheiro em reais com `BigDecimal` no Java e `number` no JS,
-  sempre formatados com `pt-BR`.
+- Valores de dinheiro: `BigDecimal` nas entidades e no banco (`NUMBER(12,2)`).
+  **Exceção:** o motor de regras usa `double`, como o JavaScript do protótipo,
+  para que os dois deem exatamente o mesmo resultado (inclusive arredondamento
+  nos textos). A formatação em reais fica em `Formatacao.brl()`, igual ao
+  `Intl` pt-BR do navegador.
 
 ## 7. Commits
 
