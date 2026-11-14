@@ -16,6 +16,11 @@ painel web para o CRAS planejar a busca ativa.
   Daniel Sanchez (RM 561948).
 - O motor de regras avalia **29 benefícios**: 20 federais, 4 do Estado de São
   Paulo e 5 da cidade de São Paulo.
+- O app vale para o **Brasil todo**: qualquer CEP vira endereço (ViaCEP) e
+  coordenadas (OpenStreetMap), e o "onde ir" junta os pontos cadastrados com os
+  do mapa aberto. Os benefícios do Estado e da cidade de São Paulo só se aplicam
+  a quem mora lá (`FiltroRegional`, fora do motor para manter a paridade). O
+  painel continua sendo de uma unidade (o CRAS do piloto, na zona sul de SP).
 - O app **orienta, não concede**: quem decide é o INSS, o CRAS, a prefeitura ou
   a distribuidora.
 
@@ -175,6 +180,8 @@ Cada commit deve deixar o projeto compilando e com os testes passando.
 | Telas do cidadão | `frontend/src/telas/cidadao/` (A1–A18, D1–D11) |
 | Telas do painel, gestão e unidade | `frontend/src/telas/painel/` (B1–B6, E1, E5), `telas/gestao/` (C1–C6), `telas/config/` (E2–E4) |
 | Horário das automações | `@Scheduled` em `AutomacaoService.java` (fuso America/Sao_Paulo) |
+| CEP, coordenadas e pontos por perto | `atendimento/LocalizacaoService.java` (ViaCEP, BrasilAPI, Nominatim, Overpass) |
+| Benefícios que só valem em SP | `regras/servico/FiltroRegional.java` |
 | Dados de demonstração | `demo/DemoSeeder.java` (port do `gerarDemo()` do protótipo, mesma semente) |
 
 ## 9. Mapa de telas e rotas
