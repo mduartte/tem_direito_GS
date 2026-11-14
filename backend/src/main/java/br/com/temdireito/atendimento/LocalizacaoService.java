@@ -51,7 +51,7 @@ public class LocalizacaoService {
                               @Value("${app.viacep-url:https://viacep.com.br/ws}") String viacep,
                               @Value("${app.brasilapi-url:https://brasilapi.com.br/api}") String brasilapi,
                               @Value("${app.nominatim-url:https://nominatim.openstreetmap.org}") String nominatim,
-                              @Value("${app.overpass-url:https://overpass-api.de/api/interpreter}") String overpass) {
+                              @Value("${app.overpass-url:https://overpass-api.de/api/interpreter,https://overpass.kumi.systems/api/interpreter,https://overpass.private.coffee/api/interpreter}") String overpass) {
         this.bairros = bairros;
         this.pontos = pontos;
         this.viacep = viacep;
@@ -60,7 +60,7 @@ public class LocalizacaoService {
         this.overpass = overpass;
         SimpleClientHttpRequestFactory f = new SimpleClientHttpRequestFactory();
         f.setConnectTimeout(3000);
-        f.setReadTimeout(30000);
+        f.setReadTimeout(20000);
         // Os serviços do OpenStreetMap exigem identificar o aplicativo.
         this.http = RestClient.builder().requestFactory(f).defaultHeader("User-Agent", "TemDireito/1.0 (projeto academico FIAP; github.com/mduartte/tem_direito_GS)").build();
     }
@@ -216,9 +216,20 @@ public class LocalizacaoService {
         };
         if (filtro == null) return List.of();
         String q = "[out:json][timeout:25];(" + filtro + ");out center 25;";
+        // O servidor público principal do Overpass vive sobrecarregado: tenta os espelhos em seguida.
+        String corpo = null;
+        for (String url : overpass.split(",")) {
+            try {
+                corpo = http.post().uri(url.trim()).contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .body("data=" + URLEncoder.encode(q, StandardCharsets.UTF_8)).retrieve().body(String.class);
+                if (corpo != null && corpo.trim().startsWith("{")) break;
+            } catch (Exception e) {
+                log.warn("Overpass {} falhou para {}: {}", url.trim(), tipo, e.getMessage());
+            }
+            corpo = null;
+        }
+        if (corpo == null) return List.of();
         try {
-            String corpo = http.post().uri(overpass).contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .body("data=" + URLEncoder.encode(q, StandardCharsets.UTF_8)).retrieve().body(String.class);
             JsonNode els = om.readTree(corpo).path("elements");
             List<Map<String, Object>> out = new ArrayList<>();
             for (JsonNode e : els) {
@@ -244,7 +255,7 @@ public class LocalizacaoService {
             }
             return out;
         } catch (Exception e) {
-            log.warn("Overpass indisponível para {}: {}", tipo, e.getMessage());
+            log.warn("Resposta do Overpass inválida para {}: {}", tipo, e.getMessage());
             return List.of();
         }
     }
