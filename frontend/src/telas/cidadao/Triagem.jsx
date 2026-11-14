@@ -115,7 +115,7 @@ export function Consentimento() {
   return <CidadaoPagina rodape={<button className="btn pri block" disabled={enviando} onClick={ver}>{enviando ? 'Calculando…' : 'Ver o resultado'}</button>}>
     <button className="btn sm" style={{ width: 'fit-content' }} onClick={() => { atualizar({ q: 9 }); nav('/triagem'); }}><Ic n="back" s={16} />Voltar</button>
     <h1 className="c-h1">Antes do resultado</h1>
-    <p className="muted" style={{ lineHeight: 1.5 }}>As respostas {outra ? 'sobre a pessoa ' : ''}ficam guardadas só neste aparelho. Você decide o que mais acontece.</p>
+    <p className="muted" style={{ lineHeight: 1.5 }}>As respostas {outra ? 'sobre a pessoa ' : ''}ficam só neste aparelho e somem quando você fecha o site. Você decide o que mais acontece.</p>
     <div className="card">
       <Linha titulo="Registrar a triagem anônima para o CRAS" sub="Vai só o bairro, quantas pessoas, a renda por pessoa arredondada e os benefícios. Nunca nome, CPF ou telefone."><Interruptor ligado={c.consentimento} rotulo="Registrar a triagem anônima" onChange={v => atualizar({ consentimento: v })} /></Linha>
       <Linha titulo="O CRAS pode mandar aviso pelo app" sub="Por exemplo: “volte com o comprovante de endereço”."><Interruptor ligado={c.autorizou} rotulo="Autorizar avisos do CRAS" onChange={v => atualizar({ autorizou: v })} /></Linha>

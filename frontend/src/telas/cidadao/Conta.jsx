@@ -88,7 +88,7 @@ export function Privacidade() {
   return <CidadaoPagina>
     <Voltar para={c.feito ? '/meus-direitos' : '/'} /><h1 className="c-h1">Privacidade e conta</h1>
     <div className="card"><b>O que guardamos</b>
-      <span className="small muted" style={{ lineHeight: 1.5 }}>No aparelho: suas respostas, o kit e os lembretes. No servidor: a triagem anônima ({c.code ? <span className="mono">#{c.code}</span> : 'não registrada'}){conta ? ' e a conta, com o celular cifrado' : ''}. Nunca CPF, NIS ou senha.</span>
+      <span className="small muted" style={{ lineHeight: 1.5 }}>Neste aparelho, só enquanto o site está aberto: suas respostas, o kit e os lembretes. Fechou, apaga. No servidor: a triagem anônima ({c.code ? <span className="mono">#{c.code}</span> : 'não registrada'}){conta ? ' e a conta, com o celular cifrado' : ''}. Nunca CPF, NIS ou senha.</span>
       <button className="btn sm" onClick={exportar}><Ic n="download" s={16} />Baixar meus dados</button></div>
     {conta ? <div className="card"><b>Conta {conta.nome ? '· ' + conta.nome : ''}</b><span className="small muted">Celular {conta.telefone}</span>
       <Linha titulo="Usar renda e saúde para avaliar" sub="consentimento da Lei Geral de Proteção de Dados (art. 11)"><Interruptor ligado={conta.aceiteSensiveis} rotulo="Usar renda e saúde" onChange={v => pref('aceiteSensiveis', v)} /></Linha>

@@ -40,7 +40,7 @@ postman/       Coleção Postman           Testes manuais e automatizados da API
 Fluxo principal:
 
 1. O cidadão responde a triagem no **frontend**. As respostas ficam **só no
-   aparelho** (localStorage).
+   aparelho** e só enquanto o site está aberto (sessionStorage): fechou a aba, zera. Só as preferências de acessibilidade ficam guardadas (localStorage).
 2. O frontend chama `POST /api/triagens/avaliar` no **backend**, que roda o
    **motor de regras** (pacote `br.com.temdireito.regras`) com a versão
    publicada das regras e devolve benefícios, condições, base legal e o Kit do

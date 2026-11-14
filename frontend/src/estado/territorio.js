@@ -1,11 +1,11 @@
 // Pontos de atendimento perto da casa, para o Brasil todo: a API junta o cadastro da gestão
-// com o OpenStreetMap. O resultado fica guardado no aparelho para abrir sem rede.
+// com o OpenStreetMap. O resultado fica na sessão (some ao fechar o site: revela a região da casa).
 import { useEffect, useState } from 'react';
 import { atendimentoApi } from '../api/servicos.js';
 import { km } from './formato.js';
 
 const chaveCache = (lat, lng, tipo) => `td-perto:${tipo || 'todos'}:${lat.toFixed(2)}:${lng.toFixed(2)}`;
-const ler = k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
+const ler = k => { try { return JSON.parse(sessionStorage.getItem(k)); } catch { return null; } };
 
 /** Lista de pontos perto de (lat, lng). tipo: CRAS, UBS, Farmácia, Defensoria ou vazio (todos). */
 export function usePerto(lat, lng, tipo) {
@@ -17,7 +17,7 @@ export function usePerto(lat, lng, tipo) {
     setEstado({ lista: salvo, erro: null });
     let vivo = true;
     atendimentoApi.perto(lat, lng, tipo)
-      .then(l => { if (!vivo) return; localStorage.setItem(k, JSON.stringify(l)); setEstado({ lista: l, erro: null }); })
+      .then(l => { if (!vivo) return; sessionStorage.setItem(k, JSON.stringify(l)); setEstado({ lista: l, erro: null }); })
       .catch(e => vivo && setEstado(x => ({ lista: x.lista || [], erro: e.message })));
     return () => { vivo = false; };
   }, [lat, lng, tipo]);

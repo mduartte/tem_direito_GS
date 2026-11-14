@@ -1,26 +1,36 @@
-// Estado do cidadão. As respostas ficam SÓ no aparelho (localStorage), como manda a LGPD
+// Estado do cidadão. As respostas ficam SÓ no aparelho e SÓ enquanto o site está aberto
+// (sessionStorage): fechou a aba, zera. Em aparelho compartilhado ou de outra pessoa, a próxima
+// consulta não vê as respostas de quem usou antes (LGPD: renda e saúde são dados sensíveis).
+// Só as preferências de acessibilidade (letras maiores, leitura em voz alta) continuam guardadas.
 // no CLAUDE.md; o servidor recebe a triagem anônima e devolve um código e uma chave.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { triagemApi } from '../api/servicos.js';
 import { paraMotor, respostasVazias } from './perguntas.js';
 
 const CHAVE = 'td-cidadao';
+const PREF = 'td-preferencias';
+const sessao = window.sessionStorage;
+// Versões antigas guardavam tudo no localStorage: apaga para não reaparecer.
+try { localStorage.removeItem(CHAVE); localStorage.removeItem('td-avaliacao'); Object.keys(localStorage).filter(k => k.startsWith('td-perto:')).forEach(k => localStorage.removeItem(k)); } catch { /* navegador sem armazenamento */ }
 const novo = () => ({ modo: null, q: 0, ans: respostasVazias(), feito: false, kit: {}, lembrete: null, status: {}, code: null, chave: null,
   conta: null, token: null, avisos: [], tts: false, big: false, autorizou: true, criado: null, viuKit: false, falta: null, negadoEm: null, usouVoz: false, consentimento: false });
 
 function carregar() {
-  try { const s = JSON.parse(localStorage.getItem(CHAVE)) || {}; return { ...novo(), ...s, ans: { ...respostasVazias(), ...(s.ans || {}) } }; } catch { return novo(); }
+  let pref = {};
+  try { pref = JSON.parse(localStorage.getItem(PREF)) || {}; } catch { /* sem preferências */ }
+  try { const s = JSON.parse(sessao.getItem(CHAVE)) || {}; return { ...novo(), ...pref, ...s, ans: { ...respostasVazias(), ...(s.ans || {}) } }; } catch { return novo(); }
 }
 
 const Ctx = createContext(null);
 
 export function CidadaoProvider({ children }) {
   const [c, setC] = useState(carregar);
-  const [aval, setAval] = useState(() => { try { return JSON.parse(localStorage.getItem('td-avaliacao')); } catch { return null; } });
+  const [aval, setAval] = useState(() => { try { return JSON.parse(sessao.getItem('td-avaliacao')); } catch { return null; } });
   const [erro, setErro] = useState(null);
   const ultimo = useRef('');
 
-  useEffect(() => { localStorage.setItem(CHAVE, JSON.stringify(c)); }, [c]);
+  useEffect(() => { sessao.setItem(CHAVE, JSON.stringify(c)); }, [c]);
+  useEffect(() => { try { localStorage.setItem(PREF, JSON.stringify({ big: !!c.big, tts: !!c.tts })); } catch { /* ignora */ } }, [c.big, c.tts]);
   useEffect(() => { document.body.classList.toggle('big', !!c.big); }, [c.big]);
 
   const atualizar = useCallback(mud => setC(x => ({ ...x, ...(typeof mud === 'function' ? mud(x) : mud) })), []);
@@ -33,7 +43,7 @@ export function CidadaoProvider({ children }) {
     ultimo.current = assinatura;
     try {
       const r = await triagemApi.avaliar(corpo);
-      if (ultimo.current === assinatura) { setAval(r); localStorage.setItem('td-avaliacao', JSON.stringify(r)); setErro(null); }
+      if (ultimo.current === assinatura) { setAval(r); sessao.setItem('td-avaliacao', JSON.stringify(r)); setErro(null); }
       return r;
     } catch (e) { setErro(e.message); throw e; }
   }, []);
@@ -59,8 +69,8 @@ export function CidadaoProvider({ children }) {
 
   const apagarTudo = useCallback(async () => {
     if (c.code && c.chave) { try { await triagemApi.apagar(c.code, c.chave); } catch { /* já apagada */ } }
-    localStorage.removeItem(CHAVE);
-    localStorage.removeItem('td-avaliacao');
+    sessao.removeItem(CHAVE);
+    sessao.removeItem('td-avaliacao');
     setAval(null);
     setC(novo());
   }, [c.code, c.chave]);

@@ -112,7 +112,7 @@ export function Lembrete() {
       {canal !== 'app' && !c.conta && <span className="xs muted">Para receber SMS, <Link to="/conta">crie uma conta com o celular</Link>. Sem conta, o aviso aparece aqui no app.</span>}</div>
     {dsel && <div className="card" style={{ background: 'var(--raised)' }}><div className="row" style={{ alignItems: 'flex-start' }}><Marca s={26} /><div className="col" style={{ gap: 2, flex: 1 }}><div className="row between"><b className="small">Tem Direito</b><span className="xs muted">{diaCurto(addDias(dsel, -1))} · 19:00</span></div><span className="small" style={{ lineHeight: 1.45 }}>Amanhã é dia de ir ao {cras.nome}. Leve: {docs.slice(0, 3).join(', ').toLowerCase() || 'seus documentos'}.</span></div></div></div>}
     {dsel && <button className="btn sm" style={{ width: 'fit-content' }} onClick={() => baixar('lembrete-cras.ics', ics, 'text/calendar')}><Ic n="calendar" s={16} />Adicionar à agenda do celular</button>}
-    {!c.code && <Aviso>A triagem não foi registrada, então o aviso da véspera fica só neste aparelho.</Aviso>}
+    {!c.code && <Aviso>A triagem não foi registrada, então não sai aviso na véspera. Toque em “Adicionar à agenda do celular” para não esquecer.</Aviso>}
     {erro && <Aviso tipo="erro">{erro}</Aviso>}
   </CidadaoPagina>;
 }
