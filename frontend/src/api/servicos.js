@@ -14,11 +14,11 @@ export const triagemApi = {
 };
 
 export const atendimentoApi = {
-  cep: cep => api(`/cep/${cep}`),
+  cep: cep => api(`/cep/${cep}`, { tempo: 15000 }),
   bairros: () => api('/bairros'),
   pontos: tipo => api('/pontos' + q({ tipo })),
   perto: (lat, lng, tipo) => api('/pontos/perto' + q({ lat, lng, tipo })),
-  local: (cidade, uf, bairro) => api('/local' + q({ cidade, uf, bairro }))
+  local: (cidade, uf, bairro, rua) => api('/local' + q({ cidade, uf, bairro, rua }), { tempo: 30000 })
 };
 
 export const contaApi = {

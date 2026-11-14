@@ -53,9 +53,10 @@ public class AtendimentoController {
     }
 
     @GetMapping("/local")
-    @Operation(summary = "Coordenadas de uma cidade (para quem não sabe o CEP)")
-    public Map<String, Object> cidade(@RequestParam String cidade, @RequestParam String uf, @RequestParam(required = false) String bairro) {
-        double[] c = local.geocodificar(null, bairro, cidade, uf);
+    @Operation(summary = "Coordenadas de um endereço ou cidade (o app busca o CEP direto no ViaCEP e pede só as coordenadas)")
+    public Map<String, Object> cidade(@RequestParam String cidade, @RequestParam String uf, @RequestParam(required = false) String bairro,
+                                      @RequestParam(required = false) String rua) {
+        double[] c = local.geocodificar(rua, bairro, cidade, uf);
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("cidade", cidade);
         m.put("uf", uf.toUpperCase());

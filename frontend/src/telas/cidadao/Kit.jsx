@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import CidadaoPagina, { Voltar } from '../../componentes/CidadaoPagina.jsx';
 import Mapa from '../../componentes/Mapa.jsx';
 import { Aviso, Carregando, Ic, Marca, Ouvir, Pill, baixar } from '../../componentes/ui.jsx';
-import { triagemApi } from '../../api/servicos.js';
+import { atendimentoApi, triagemApi } from '../../api/servicos.js';
 import { useCidadao } from '../../estado/cidadao.jsx';
 import { buscaNoMapa, usePerto } from '../../estado/territorio.js';
 import { DIAS, MESES, addDias, diaCurto, fmtKm, hoje, isoDia } from '../../estado/formato.js';
@@ -41,6 +41,16 @@ export function OndeIr() {
   const { lista, erro } = usePerto(a.lat, a.lng, tipo);
   const { lista: todos } = usePerto(a.lat, a.lng, '');
   const rodape = <Link className="btn pri block" to="/lembrete">Marcar lembrete para ir</Link>;
+  const [localizando, setLocalizando] = useState(false);
+  useEffect(() => {
+    // O CEP foi achado mas as coordenadas ainda não chegaram (servidor acordando): tenta de novo aqui.
+    if (a.lat != null || !a.cidade || !a.uf) return;
+    setLocalizando(true);
+    atendimentoApi.local(a.cidade, a.uf, a.bairro !== 'Não informado' ? a.bairro : undefined, a.logradouro || undefined)
+      .then(c => { if (c?.lat != null) atualizar(x => ({ ans: { ...x.ans, lat: c.lat, lng: c.lng } })); })
+      .catch(() => {}).finally(() => setLocalizando(false));
+  }, [a.lat, a.cidade, a.uf]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (a.lat == null && localizando) return <CidadaoPagina rodape={rodape}><Voltar para="/kit" rotulo="Kit do Direito" /><h1 className="c-h1">Onde ir</h1><Carregando texto="Localizando sua região no mapa… pode levar até 1 minuto." /></CidadaoPagina>;
   if (a.lat == null) return <CidadaoPagina rodape={rodape}><Voltar para="/kit" rotulo="Kit do Direito" /><h1 className="c-h1">Onde ir</h1>
     <div className="card"><b>Falta saber onde você mora</b><span className="small muted">Informe o CEP ou a cidade para mostrarmos o CRAS mais perto.</span><button className="btn sm" style={{ width: 'fit-content' }} onClick={() => { atualizar({ q: 9 }); nav('/triagem'); }}>Informar CEP ou cidade</button></div>
     <div className="card"><b>Enquanto isso</b><span className="small muted">Ligue no Disque Social 121 (de graça) e pergunte qual é o CRAS do seu bairro.</span><a className="btn sm" style={{ width: 'fit-content' }} href="tel:121"><Ic n="phone" s={16} />Ligar 121</a></div></CidadaoPagina>;

@@ -14,16 +14,21 @@ export class ErroApi extends Error {
 }
 
 /** Faz a chamada e transforma ProblemDetail do Spring em mensagem legível. */
-export async function api(caminho, { metodo = 'GET', corpo, token, chave, bruto } = {}) {
+export async function api(caminho, { metodo = 'GET', corpo, token, chave, bruto, tempo } = {}) {
   const h = {};
   if (corpo !== undefined && !(corpo instanceof FormData)) h['Content-Type'] = 'application/json';
   if (token) h.Authorization = 'Bearer ' + token;
   if (chave) h['X-Chave'] = chave;
   let r;
+  // "tempo" (ms) corta a espera: no plano gratuito o servidor pode estar acordando e a tela não pode travar.
+  const ctrl = tempo ? new AbortController() : null;
+  const relogio = ctrl ? setTimeout(() => ctrl.abort(), tempo) : null;
   try {
-    r = await fetch(BASE + caminho, { method: metodo, headers: h, body: corpo === undefined ? undefined : corpo instanceof FormData ? corpo : JSON.stringify(corpo) });
+    r = await fetch(BASE + caminho, { method: metodo, headers: h, signal: ctrl?.signal, body: corpo === undefined ? undefined : corpo instanceof FormData ? corpo : JSON.stringify(corpo) });
   } catch {
-    throw new ErroApi(0, 'Sem conexão com o servidor. Confira a internet e tente de novo.');
+    throw new ErroApi(0, ctrl?.signal.aborted ? 'O servidor demorou para responder.' : 'Sem conexão com o servidor. Confira a internet e tente de novo.');
+  } finally {
+    if (relogio) clearTimeout(relogio);
   }
   if (bruto) return r;
   if (r.status === 204) return null;

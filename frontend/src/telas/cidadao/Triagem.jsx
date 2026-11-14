@@ -24,25 +24,36 @@ export function Triagem() {
   const [buscando, setBuscando] = useState(false);
   const [cidadeTmp, setCidadeTmp] = useState({ uf: a.uf || '', cidade: a.cidade || '', bairro: '' });
 
-  /** Busca o CEP na API (ViaCEP no servidor); se o servidor não responder, tenta o ViaCEP direto e, por fim, as faixas do piloto. */
+  /**
+   * Busca o CEP em duas etapas, para a tela nunca ficar presa em "Procurando":
+   * 1) o endereço: ViaCEP direto do aparelho (rápido); se falhar, o servidor; sem rede, as faixas do piloto;
+   * 2) as coordenadas (para o mapa), em segundo plano: a pessoa já pode continuar.
+   */
   const setCep = async v => {
     const cep = v.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2');
     atualizar(x => ({ ans: { ...x.ans, cep, ...(cep.length < 9 ? { bairro: null, cidade: null, uf: null, logradouro: '', lat: null, lng: null } : {}) } }));
     setCepInfo(null);
     if (cep.length !== 9) return;
     setBuscando(true);
+    const d = cep.replace('-', '');
     let r = null;
-    try { r = await atendimentoApi.cep(cep); } catch { /* servidor fora: tenta direto */ }
-    if (!r?.encontrado) {
-      try {
-        const v2 = await fetch(`https://viacep.com.br/ws/${cep.replace('-', '')}/json/`).then(x => x.json());
-        if (!v2.erro) r = { encontrado: true, logradouro: v2.logradouro, bairro: v2.bairro, cidade: v2.localidade, uf: v2.uf };
-      } catch { /* sem internet */ }
-    }
-    if (!r?.encontrado && bairroDoCep(cep)) r = { encontrado: true, bairro: bairroDoCep(cep), cidade: 'São Paulo', uf: 'SP' };
+    try {
+      const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 6000);
+      const v2 = await fetch(`https://viacep.com.br/ws/${d}/json/`, { signal: ctrl.signal }).then(x => x.json()).finally(() => clearTimeout(t));
+      if (!v2.erro) r = { encontrado: true, logradouro: v2.logradouro, bairro: v2.bairro, cidade: v2.localidade, uf: v2.uf };
+      else r = { encontrado: false };
+    } catch { /* ViaCEP fora do ar ou bloqueado: tenta o servidor */ }
+    if (!r) { try { r = await atendimentoApi.cep(cep); } catch { /* servidor dormindo ou sem rede */ } }
+    if (!r?.encontrado && bairroDoCep(d)) r = { encontrado: true, bairro: bairroDoCep(d), cidade: 'São Paulo', uf: 'SP' };
     setBuscando(false);
     setCepInfo(r || { encontrado: false });
-    if (r?.encontrado) atualizar(x => ({ ans: { ...x.ans, bairro: r.bairro || 'Não informado', cidade: r.cidade, uf: r.uf, logradouro: r.logradouro || '', lat: r.lat ?? null, lng: r.lng ?? null } }));
+    if (!r?.encontrado) return;
+    atualizar(x => ({ ans: { ...x.ans, bairro: r.bairro || 'Não informado', cidade: r.cidade, uf: r.uf, logradouro: r.logradouro || '', lat: r.lat ?? null, lng: r.lng ?? null } }));
+    if (r.lat == null) {
+      atendimentoApi.local(r.cidade, r.uf, r.bairro || undefined, r.logradouro || undefined)
+        .then(c => { if (c?.lat != null) atualizar(x => (x.ans.cep === cep ? { ans: { ...x.ans, lat: c.lat, lng: c.lng } } : {})); })
+        .catch(() => { /* o "Onde ir" tenta de novo */ });
+    }
   };
 
   /** Para quem não sabe o CEP: estado e cidade (e bairro, se quiser). */
