@@ -60,7 +60,7 @@ public class LocalizacaoService {
         this.overpass = overpass;
         SimpleClientHttpRequestFactory f = new SimpleClientHttpRequestFactory();
         f.setConnectTimeout(3000);
-        f.setReadTimeout(12000);
+        f.setReadTimeout(30000);
         // Os serviços do OpenStreetMap exigem identificar o aplicativo.
         this.http = RestClient.builder().requestFactory(f).defaultHeader("User-Agent", "TemDireito/1.0 (projeto academico FIAP; github.com/mduartte/tem_direito_GS)").build();
     }
@@ -203,14 +203,19 @@ public class LocalizacaoService {
         int r = RAIO.getOrDefault(tipo, 10000);
         String a = "(around:" + r + "," + lat + "," + lng + ")";
         String filtro = switch (tipo) {
-            case "CRAS" -> "nwr" + a + "[\"name\"~\"CRAS|Refer[eê]ncia de Assist[eê]ncia Social\",i];";
-            case "UBS" -> "nwr" + a + "[\"name\"~\"UBS|Unidade B[aá]sica|Posto de Sa[uú]de|Centro de Sa[uú]de|Unidade de Sa[uú]de da Fam\",i];";
+            // Filtra primeiro por etiqueta (barato) e só depois pelo nome (regex é caro em cidade grande).
+            case "CRAS" -> "nwr" + a + "[\"amenity\"~\"social_facility|community_centre|public_building\"][\"name\"~\"CRAS|Assist[eê]ncia Social\",i];"
+                    + "nwr" + a + "[\"office\"~\"government|ngo\"][\"name\"~\"CRAS|Assist[eê]ncia Social\",i];"
+                    + "nwr" + a + "[\"social_facility\"][\"name\"~\"CRAS\",i];";
+            case "UBS" -> "nwr" + a + "[\"amenity\"~\"clinic|doctors|hospital\"][\"name\"~\"UBS|Unidade B[aá]sica|Posto de Sa[uú]de|Centro de Sa[uú]de|Sa[uú]de da Fam\",i];"
+                    + "nwr" + a + "[\"healthcare\"][\"name\"~\"UBS|Unidade B[aá]sica|Posto de Sa[uú]de|Centro de Sa[uú]de|Sa[uú]de da Fam\",i];";
             case "Farmácia" -> "nwr" + a + "[\"amenity\"=\"pharmacy\"];";
-            case "Defensoria" -> "nwr" + a + "[\"name\"~\"Defensoria P[uú]blica\",i];";
+            case "Defensoria" -> "nwr" + a + "[\"office\"][\"name\"~\"Defensoria\",i];"
+                    + "nwr" + a + "[\"amenity\"~\"courthouse|public_building\"][\"name\"~\"Defensoria\",i];";
             default -> null;
         };
         if (filtro == null) return List.of();
-        String q = "[out:json][timeout:15];(" + filtro + ");out center 25;";
+        String q = "[out:json][timeout:25];(" + filtro + ");out center 25;";
         try {
             String corpo = http.post().uri(overpass).contentType(MediaType.APPLICATION_FORM_URLENCODED)
                     .body("data=" + URLEncoder.encode(q, StandardCharsets.UTF_8)).retrieve().body(String.class);
@@ -239,7 +244,7 @@ public class LocalizacaoService {
             }
             return out;
         } catch (Exception e) {
-            log.debug("Overpass indisponível para {}: {}", tipo, e.getMessage());
+            log.warn("Overpass indisponível para {}: {}", tipo, e.getMessage());
             return List.of();
         }
     }

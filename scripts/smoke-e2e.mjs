@@ -70,8 +70,10 @@ ok(!!fora, 'CEP de outro estado: ' + (fora ? `${fora.cidade}-${fora.uf}` : 'nenh
 const ba = await j('POST', API + '/triagens/avaliar', { ...respostas, cidade: 'Salvador', uf: 'BA', bairro: 'Centro' });
 ok(ba.d.resultado.filter(b => b.esf !== 'Federal').every(b => b.status === 'nao'), 'fora de SP, benefícios de SP não se aplicam');
 if (fora?.lat) {
-  const p = await j('GET', `${API}/pontos/perto?lat=${fora.lat}&lng=${fora.lng}&tipo=CRAS`);
-  console.log(`  · pontos perto (OpenStreetMap): ${Array.isArray(p.d) ? p.d.length : 0} CRAS achados`);
+  for (const t of ['CRAS', 'UBS', 'Farmácia']) {
+    const p = await j('GET', `${API}/pontos/perto?lat=${fora.lat}&lng=${fora.lng}&tipo=${encodeURIComponent(t)}`);
+    console.log(`  · ${t} perto de ${fora.cidade} (OpenStreetMap): ${Array.isArray(p.d) ? p.d.length : 0}${Array.isArray(p.d) && p.d[0] ? ' · ex.: ' + p.d[0].nome : ''}`);
+  }
 }
 
 console.log('LGPD');

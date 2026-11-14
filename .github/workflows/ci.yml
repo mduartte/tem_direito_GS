@@ -127,7 +127,7 @@ jobs:
         run: |
           for i in $(seq 1 90); do curl -sf http://localhost:8081/actuator/health && curl -sf http://localhost:8000/saude && curl -sf http://localhost:4173 >/dev/null && break; sleep 2; done
       - name: Smoke test da API
-        run: node scripts/smoke-e2e.mjs http://localhost:4173
+        run: node scripts/smoke-e2e.mjs http://localhost:4173; S=$?; grep -i overpass backend.log | tail -5; exit $S
       - name: Smoke test da interface
         run: |
           cd frontend && npm install --no-save playwright@1.49.1 && npx playwright install --with-deps chromium
