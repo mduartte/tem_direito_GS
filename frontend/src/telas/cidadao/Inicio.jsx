@@ -27,7 +27,10 @@ export function Inicio() {
     <div className="card rise" style={{ animationDelay: '.25s' }}><div className="row" style={{ alignItems: 'flex-start' }}><Ic n="lock" s={20} c="#17704A" /><div className="col" style={{ gap: 4 }}><b style={{ fontSize: 15 }}>Sem CPF, sem senha, sem custo</b><span className="small muted" style={{ lineHeight: 1.5 }}>Ninguém do Tem Direito pede dinheiro ou documento. Você pode apagar tudo quando quiser.</span></div></div></div>
     <Link className="card rise" to="/duvidas" style={{ animationDelay: '.3s', textDecoration: 'none', color: 'inherit', flexDirection: 'row', alignItems: 'center', gap: 12 }}><Ic n="chat" s={22} c="#17704A" /><div className="col" style={{ gap: 2, flex: 1 }}><b style={{ fontSize: 15 }}>Tem uma dúvida?</b><span className="small muted">Pergunte ao assistente, escrevendo ou falando</span></div><Ic n="chev" s={18} c="var(--mute)" /></Link>
     <p className="sheet-note">O Tem Direito orienta. Quem decide é o INSS, o CRAS e a distribuidora.</p>
-    <p className="sheet-note">Trabalha em um CRAS ou ONG? <Link to="/painel">Abrir o painel</Link> · <Link to="/acesso">Pedir acesso</Link></p>
+    {/* Acesso da equipe como botões de verdade: no celular o link pequeno no fim da página era difícil de tocar
+        e o "Painel do CRAS" do topo fica escondido para caber na tela. */}
+    <div className="card acesso-equipe"><Ic n="chart" s={22} c="#17704A" /><div className="col" style={{ gap: 2, flex: 1 }}><b style={{ fontSize: 15 }}>Trabalha em um CRAS ou ONG?</b><span className="small muted">Veja a busca ativa no painel da equipe.</span></div>
+      <div className="acoes"><Link className="btn sm" to="/painel">Abrir o painel</Link><Link className="btn sm" to="/acesso">Pedir acesso</Link></div></div>
   </CidadaoPagina>;
 }
 

@@ -4,3 +4,11 @@
 .leaflet-tooltip { font-family: var(--font); font-size: 12px; }
 .p-side a.active { background: var(--active); color: var(--ink); font-weight: 500; }
 .c-nav a.active { color: var(--ink); font-weight: 600; }
+
+/* Celular: o rodapé fixo tem dois botões e ainda a área segura do iPhone. Sem essa folga,
+   o fim da página (o acesso ao painel) ficava colado no rodapé e o toque não pegava. */
+.c-main { padding-bottom: calc(190px + env(safe-area-inset-bottom)); }
+.c-foot-in { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+.acesso-equipe { display: flex; flex-direction: row; align-items: center; gap: 12px; }
+.acesso-equipe .acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 560px) { .acesso-equipe { flex-direction: column; align-items: stretch; } .acesso-equipe .acoes .btn { flex: 1; } }
