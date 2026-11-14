@@ -1,20 +1,27 @@
 // Moldura das telas do cidadão: topo com navegação, área central e rodapé fixo com a ação principal.
+import { useEffect, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useCidadao } from '../estado/cidadao.jsx';
 import { Ic, Marca } from './ui.jsx';
 
 export function Topo() {
   const { c, atualizar } = useCidadao();
-  return <header className={'c-top' + (c.feito ? ' compact' : '')}><div className="c-top-in">
-    <Link className="logo" to="/" aria-label="Tem Direito, início"><Marca s={28} /><span className="logo-t">Tem Direito</span></Link>
-    <nav className="c-nav" aria-label="Principal" style={{ marginLeft: 8 }}>
-      {c.feito && <><NavLink to="/resultado">Resultado</NavLink><NavLink to="/meus-direitos"><span className="nav-lg">Meus direitos</span><span className="nav-sm">Direitos</span></NavLink></>}
-      <NavLink to="/duvidas"><span className="nav-lg">Tire dúvidas</span><span className="nav-sm">Dúvidas</span></NavLink>
+  // Sombra só depois de rolar: no topo da página o cabeçalho fica leve, sem linha pesando.
+  const [rolou, setRolou] = useState(false);
+  useEffect(() => { const f = () => setRolou(window.scrollY > 4); f(); window.addEventListener('scroll', f, { passive: true }); return () => window.removeEventListener('scroll', f); }, []);
+  return <header className={'c-top' + (c.feito ? ' compact' : '') + (rolou ? ' rolou' : '')}><div className="c-top-in">
+    <Link className="logo" to="/" aria-label="Tem Direito, início"><Marca s={30} /><span className="logo-t">Tem Direito</span></Link>
+    <nav className="c-nav seg" aria-label="Principal">
+      {c.feito && <><NavLink to="/resultado"><Ic n="check" s={15} /><span>Resultado</span></NavLink><NavLink to="/meus-direitos"><Ic n="list" s={15} /><span className="nav-lg">Meus direitos</span><span className="nav-sm">Direitos</span></NavLink></>}
+      <NavLink to="/duvidas"><Ic n="chat" s={15} /><span className="nav-lg">Tire dúvidas</span><span className="nav-sm">Dúvidas</span></NavLink>
     </nav>
     <div style={{ flex: 1 }} />
-    <button className="btn sm" type="button" aria-pressed={c.big} title="Letras maiores" aria-label="Letras maiores" onClick={() => atualizar({ big: !c.big })}>A+</button>
-    {c.conta ? <Link className="small muted" to="/privacidade" style={{ whiteSpace: 'nowrap' }}>Olá, {c.conta.nome || 'você'}</Link> : <Link className="btn sm entrar" to="/entrar">Entrar</Link>}
-    <Link className="small to-painel" to="/painel" style={{ whiteSpace: 'nowrap' }}>Painel do CRAS</Link>
+    <div className="topo-acoes">
+      <button className="ic-btn" type="button" aria-pressed={c.big} title="Letras maiores" aria-label="Letras maiores" onClick={() => atualizar({ big: !c.big })}><span aria-hidden="true" style={{ fontWeight: 700, fontSize: 14 }}>A+</span></button>
+      <Link className="ic-btn" to="/painel" title="Painel do CRAS" aria-label="Painel do CRAS"><Ic n="chart" s={17} /></Link>
+      {c.conta ? <Link className="topo-conta" to="/privacidade"><span className="avatar">{(c.conta.nome || 'V')[0].toUpperCase()}</span><span className="nav-lg">{c.conta.nome || 'Minha conta'}</span></Link>
+        : <Link className="btn sm entrar topo-entrar" to="/entrar"><Ic n="users" s={15} />Entrar</Link>}
+    </div>
   </div></header>;
 }
 

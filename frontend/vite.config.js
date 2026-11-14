@@ -23,6 +23,7 @@ export default defineConfig({
         icons: [{ src: 'icone.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }]
       },
       workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,woff2}'],
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api/, /^\/swagger/],
         runtimeCaching: [
