@@ -33,7 +33,7 @@ export function Cabecalho({ titulo, sub, children }) {
   return <div className="row between wrap" style={{ alignItems: 'flex-end', gap: 16 }}><div><h1>{titulo}</h1>{sub && <p className="small muted" style={{ marginTop: 4 }}>{sub}</p>}</div><div className="row wrap" style={{ gap: 8 }}>{children}</div></div>;
 }
 
-export function Barras({ itens, cor = '#17704A' }) {
+export function Barras({ itens, cor = '#059669' }) {
   const mx = Math.max(1, ...itens.map(x => x[1]));
   return <div className="blist">{itens.map(([t, v, lab], i) => <div key={t + i} className="col" style={{ gap: 6 }}><div className="row between small"><span>{t}</span><span className="num muted">{lab}</span></div><div className="bar" style={{ height: 6, background: 'var(--raised)' }}><i className="fill" style={{ width: `${v / mx * 100}%`, background: cor, animationDelay: `${0.2 + i * 0.06}s` }} /></div></div>)}</div>;
 }

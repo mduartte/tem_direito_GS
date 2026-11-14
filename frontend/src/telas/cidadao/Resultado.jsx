@@ -30,7 +30,7 @@ export function Resultado() {
     <div className="row between wrap"><Voltar para="/" rotulo="Início" /><div className="row"><Ouvir texto={fala} rotulo="Ouvir o resultado" /><button className="btn sm" onClick={() => { refazer(); nav('/modo'); }}>Refazer</button></div></div>
     {erro && <Aviso tipo="erro">Mostrando o último resultado salvo. {erro}</Aviso>}
     <div className="grid2"><div className="col">
-      <div className="rise" style={{ background: 'var(--g)', color: '#fff', borderRadius: 20, padding: 18, display: 'flex', gap: 16, alignItems: 'center' }}>
+      <div className="rise resumo-hero" style={{ background: 'var(--g)', color: '#fff', borderRadius: 20, padding: 18, display: 'flex', gap: 16, alignItems: 'center' }}>
         <span className="num pop" style={{ animationDelay: '.25s', fontSize: 56, fontWeight: 700, lineHeight: 1 }}>{at.length}</span>
         <div className="col" style={{ gap: 4 }}><b style={{ fontSize: 18, lineHeight: 1.25 }}>{at.length === 1 ? 'benefício' : 'benefícios'} que {outra ? 'a pessoa' : 'você'} provavelmente pode receber</b><span className="small" style={{ color: '#d7f0e1' }}>Entre {cats.length} áreas. Quem decide é o órgão de cada benefício.</span></div>
       </div>

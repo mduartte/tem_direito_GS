@@ -1,0 +1,111 @@
+/* =====================================================================
+   Tema "tech" (layout v2) — por cima do CSS do protótipo.
+   Mesma estrutura e os mesmos lugares de botão (continua intuitivo);
+   muda o acabamento: tipografia geométrica, azul-petróleo profundo,
+   gradiente esmeralda → ciano, cartões em vidro e brilho nos estados ativos.
+   Contraste: textos ≥ 4,5:1 sobre o fundo (WCAG AA).
+   ===================================================================== */
+:root {
+  --g: #0E9F6E; --g2: #065F46; --mint: #D7F7EA;
+  --ink: #0B1B26; --mute: #4F6170; --border: #E2E8EE; --rule: #EDF1F4; --control: #CBD5DF;
+  --ground: #F4F7FA; --frame: #EEF3F7; --raised: #F2F6F9; --active: #E6F4EF;
+  --teal: #071A24; --navy: #0A2230;
+  /* Tons escuros o bastante para texto branco passar de 4,5:1 nos botões. */
+  --grad: linear-gradient(120deg, #059669 0%, #0E7490 100%);
+  --grad-escuro: radial-gradient(120% 140% at 85% 0%, #0F3B4A 0%, #071A24 55%, #050F16 100%);
+  --brilho: 0 8px 24px -8px rgba(16, 185, 129, .55);
+  --sombra: 0 1px 2px rgba(11, 27, 38, .04), 0 8px 24px -12px rgba(11, 27, 38, .12);
+  --font: 'Inter', system-ui, sans-serif;
+  --titulo: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+}
+html, body { background: var(--ground); }
+body { background-image: radial-gradient(rgba(11, 27, 38, .055) 1px, transparent 1px); background-size: 22px 22px; background-attachment: fixed; }
+h1, h2, .c-h1, .logo, .kpis .v, .num.pop { font-family: var(--titulo); }
+.c-h1 { font-size: 28px; font-weight: 700; letter-spacing: -.025em; }
+.big .c-h1 { font-size: 34px; }
+
+/* Topo do app: vidro sobre o fundo */
+.c-top { background: rgba(255, 255, 255, .78); backdrop-filter: saturate(1.6) blur(14px); -webkit-backdrop-filter: saturate(1.6) blur(14px); border-bottom: 1px solid rgba(226, 232, 238, .8); }
+.logo { font-weight: 700; letter-spacing: -.02em; }
+.c-nav a[aria-current=page] { color: var(--g2); }
+
+/* Botões */
+.btn { border-radius: 14px; border-color: var(--border); box-shadow: 0 1px 2px rgba(11, 27, 38, .05); transition: transform .12s, box-shadow .2s, border-color .2s; }
+.btn:hover { border-color: #9FE3C9; box-shadow: 0 4px 14px -6px rgba(14, 159, 110, .35); }
+.btn.pri, .btn.brand { background: var(--grad); border: 0; color: #fff; box-shadow: var(--brilho); letter-spacing: .01em; }
+.btn.pri:hover, .btn.brand:hover { filter: brightness(1.06); box-shadow: 0 12px 28px -8px rgba(6, 182, 212, .55); }
+.btn.pri[disabled] { background: #B7C6D1; box-shadow: none; opacity: 1; }
+.btn.dark { background: var(--navy); border-color: var(--navy); }
+.btn.sm { border-radius: 10px; }
+
+/* Cartões em vidro */
+.card, .ben, .opt, .msg.a { border-color: rgba(226, 232, 238, .9); box-shadow: var(--sombra); }
+.card { border-radius: 18px; background: rgba(255, 255, 255, .92); }
+.ben { border-radius: 18px; }
+.ben:hover { border-color: #9FE3C9; box-shadow: 0 10px 28px -14px rgba(14, 159, 110, .45); }
+.opt { border-radius: 18px; transition: transform .12s, box-shadow .2s, border-color .2s; }
+.opt:hover { border-color: #9FE3C9; transform: translateY(-1px); }
+.opt[aria-pressed=true] { border: 2px solid transparent; background: linear-gradient(#F0FBF6, #F0FBF6) padding-box, var(--grad) border-box; box-shadow: var(--brilho); }
+.opt[aria-pressed=true] .dot { border-color: #06B6D4; }
+.opt[aria-pressed=true] .dot::after { background: var(--grad); }
+.chip { border-color: var(--control); transition: all .15s; }
+.chip[aria-pressed=true] { background: var(--grad); border-color: transparent; box-shadow: var(--brilho); }
+.pill.brand { background: #DDF7EC; color: #04553B; }
+.notice { border-radius: 14px; }
+
+/* Barra de progresso com brilho */
+.bar { background: #E3EAF0; height: 8px; }
+.bar > i, .bar .fill { background: var(--grad); box-shadow: 0 0 12px rgba(6, 182, 212, .55); }
+
+/* Herói: azul-petróleo com grade e brilho */
+.hero { background: var(--grad-escuro); border-radius: 26px; box-shadow: 0 24px 48px -24px rgba(7, 26, 36, .65); isolation: isolate; }
+.hero::before { content: ""; position: absolute; width: 260px; height: 260px; right: -60px; top: -90px; border-radius: 50%; background: radial-gradient(circle, rgba(6, 182, 212, .55), transparent 65%); filter: blur(10px); z-index: -1; animation: orbe 8s ease-in-out infinite alternate; }
+.hero::after { content: ""; position: absolute; width: 200px; height: 200px; left: -50px; bottom: -110px; border-radius: 50%; background: radial-gradient(circle, rgba(16, 185, 129, .45), transparent 65%); filter: blur(12px); z-index: -1; }
+.hero .chips span { backdrop-filter: blur(6px); border: 1px solid rgba(255, 255, 255, .14); }
+@keyframes orbe { to { transform: translate(-30px, 20px) scale(1.12); } }
+@media (prefers-reduced-motion: reduce) { .hero::before { animation: none; } }
+
+/* Rodapé de ações em vidro */
+.c-foot { background: rgba(255, 255, 255, .86); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-top: 1px solid rgba(226, 232, 238, .8); }
+
+/* Contador, microfone e chat */
+.counter button { border-radius: 16px; box-shadow: var(--sombra); }
+.mic { background: var(--grad) !important; box-shadow: 0 0 0 8px rgba(16, 185, 129, .12), var(--brilho); }
+.msg.u { background: var(--grad); }
+.inp { border-radius: 14px; border-color: var(--control); transition: box-shadow .2s, border-color .2s; }
+.inp:focus { outline: none; border-color: #06B6D4; box-shadow: 0 0 0 4px rgba(6, 182, 212, .18); }
+.code6 input:focus { border-color: #06B6D4; box-shadow: 0 0 0 4px rgba(6, 182, 212, .18); }
+
+/* ---------- Painel do CRAS: barra lateral escura, área clara ---------- */
+.p { background: var(--frame); }
+.p-side { background: var(--grad-escuro); color: #DCE7EE; border-right: 1px solid rgba(255, 255, 255, .06); }
+.p-side .logo { color: #fff; }
+.p-side .grp > div { color: #7F98A8; text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+.p-side a { color: #C9D7E0; border-radius: 10px; }
+.p-side a svg { stroke: currentColor !important; }
+.p-side a:hover { background: rgba(255, 255, 255, .07); color: #fff; }
+.p-side a[aria-current=page], .p-side a.active { background: rgba(16, 185, 129, .16); color: #fff; box-shadow: inset 3px 0 0 #10B981; }
+.p-side .p-scope { background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .08); border-radius: 12px; color: #fff; }
+.p-side .p-scope .muted, .p-side .who .muted { color: #8FA6B5 !important; }
+.p-side .who { color: #fff; }
+.p-top { background: rgba(255, 255, 255, .7); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
+.p-sheet h1 { font-family: var(--titulo); font-weight: 700; letter-spacing: -.02em; }
+.panel { background: #fff; border-radius: 16px; border-color: var(--border); box-shadow: var(--sombra); }
+.kpis { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: var(--sombra); position: relative; }
+.kpis::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--grad); }
+.kpis .v { font-weight: 700; }
+.p-sel, .p-search { border-radius: 10px; }
+.t th { text-transform: uppercase; letter-spacing: .06em; font-size: 11px; color: var(--mute); }
+.wbars .b.cur { background: var(--grad) !important; }
+
+/* Login do painel */
+.login .side { background: var(--grad-escuro); }
+.login .side::after { content: ""; position: absolute; width: 420px; height: 420px; right: -120px; top: -120px; border-radius: 50%; background: radial-gradient(circle, rgba(6, 182, 212, .4), transparent 65%); }
+
+/* Cartão de resumo do resultado: o mesmo gradiente do herói */
+.resumo-hero { background: var(--grad-escuro) !important; position: relative; overflow: hidden; box-shadow: 0 24px 48px -24px rgba(7, 26, 36, .65); }
+.resumo-hero::after { content: ""; position: absolute; width: 180px; height: 180px; right: -50px; top: -70px; border-radius: 50%; background: radial-gradient(circle, rgba(16, 185, 129, .5), transparent 65%); }
+.resumo-hero .num { background: linear-gradient(120deg, #34D399, #22D3EE); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* O logotipo da barra lateral é um link para a visão geral, mas não é item de menu */
+.p-side a.logo, .p-side a.logo.active { background: none; box-shadow: none; height: auto; }
