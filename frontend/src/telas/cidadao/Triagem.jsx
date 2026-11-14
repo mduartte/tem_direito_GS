@@ -6,7 +6,7 @@ import Microfone from '../../componentes/Microfone.jsx';
 import { Aviso, Ic, Interruptor, Linha, Ouvir } from '../../componentes/ui.jsx';
 import { atendimentoApi } from '../../api/servicos.js';
 import { useCidadao } from '../../estado/cidadao.jsx';
-import { BAIRROS, bairroDoCep, brl } from '../../estado/formato.js';
+import { UFS, bairroDoCep, brl } from '../../estado/formato.js';
 import { perguntas, respondido } from '../../estado/perguntas.js';
 import { falar } from '../../estado/voz.js';
 
@@ -20,14 +20,38 @@ export function Triagem() {
   useEffect(() => { if (c.tts) falar(q.t + '. ' + (q.help || '')); }, [i]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ir = d => { const novo = i + d; if (novo < 0) return nav('/modo'); if (novo >= tot) return nav('/consentimento'); atualizar({ q: novo }); window.scrollTo(0, 0); };
+  const [semCep, setSemCep] = useState(false);
+  const [buscando, setBuscando] = useState(false);
+  const [cidadeTmp, setCidadeTmp] = useState({ uf: a.uf || '', cidade: a.cidade || '', bairro: '' });
+
+  /** Busca o CEP na API (ViaCEP no servidor); se o servidor não responder, tenta o ViaCEP direto e, por fim, as faixas do piloto. */
   const setCep = async v => {
     const cep = v.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2');
-    const local = bairroDoCep(cep);
-    atualizar(x => ({ ans: { ...x.ans, cep, bairro: local || (cep.length < 9 ? x.ans.bairro : null) } }));
+    atualizar(x => ({ ans: { ...x.ans, cep, ...(cep.length < 9 ? { bairro: null, cidade: null, uf: null, logradouro: '', lat: null, lng: null } : {}) } }));
     setCepInfo(null);
-    if (cep.length === 9) {
-      try { const r = await atendimentoApi.cep(cep); setCepInfo(r); if (r.bairro) responder('bairro', r.bairro); } catch { /* sem rede: vale a faixa local */ }
+    if (cep.length !== 9) return;
+    setBuscando(true);
+    let r = null;
+    try { r = await atendimentoApi.cep(cep); } catch { /* servidor fora: tenta direto */ }
+    if (!r?.encontrado) {
+      try {
+        const v2 = await fetch(`https://viacep.com.br/ws/${cep.replace('-', '')}/json/`).then(x => x.json());
+        if (!v2.erro) r = { encontrado: true, logradouro: v2.logradouro, bairro: v2.bairro, cidade: v2.localidade, uf: v2.uf };
+      } catch { /* sem internet */ }
     }
+    if (!r?.encontrado && bairroDoCep(cep)) r = { encontrado: true, bairro: bairroDoCep(cep), cidade: 'São Paulo', uf: 'SP' };
+    setBuscando(false);
+    setCepInfo(r || { encontrado: false });
+    if (r?.encontrado) atualizar(x => ({ ans: { ...x.ans, bairro: r.bairro || 'Não informado', cidade: r.cidade, uf: r.uf, logradouro: r.logradouro || '', lat: r.lat ?? null, lng: r.lng ?? null } }));
+  };
+
+  /** Para quem não sabe o CEP: estado e cidade (e bairro, se quiser). */
+  const usarCidade = async () => {
+    setBuscando(true);
+    let c = null;
+    try { c = await atendimentoApi.local(cidadeTmp.cidade.trim(), cidadeTmp.uf, cidadeTmp.bairro.trim() || undefined); } catch { /* sem rede: segue sem mapa */ }
+    setBuscando(false);
+    atualizar(x => ({ ans: { ...x.ans, cep: '', logradouro: '', bairro: cidadeTmp.bairro.trim() || 'Não informado', cidade: cidadeTmp.cidade.trim(), uf: cidadeTmp.uf, lat: c?.lat ?? null, lng: c?.lng ?? null } }));
   };
 
   let corpo = null;
@@ -45,14 +69,20 @@ export function Triagem() {
       {sel.length > 0 && !sel.includes('nen') && <span className="small muted">{sel.length} {sel.length === 1 ? 'marcada' : 'marcadas'}</span>}</>;
   }
   if (q.type === 'cep') {
-    const b = a.cep ? bairroDoCep(a.cep) || cepInfo?.bairro : null;
-    corpo = <><div className="field"><label htmlFor="qin">CEP</label><input id="qin" className="inp num" inputMode="numeric" value={a.cep} placeholder="00000-000" maxLength={9} style={{ fontSize: 22, height: 56 }} onChange={e => setCep(e.target.value)} />
-      <span className={'small ' + (a.cep && !b ? '' : 'muted')}>{a.cep ? (b ? <>Bairro: <b>{b}</b>{cepInfo?.logradouro ? ` · ${cepInfo.logradouro}` : ''}</> : 'Não achamos esse CEP na região do piloto. Escolha o bairro abaixo.') : 'Exemplo da região do piloto: 04938-000'}</span></div>
-      <div className="lbl">Ou escolha o bairro</div><div className="chips">{BAIRROS.map(x => <button key={x} type="button" className="chip" aria-pressed={a.bairro === x} onClick={() => responder('bairro', x)}>{x}</button>)}</div></>;
+    const achou = a.cidade && a.uf;
+    corpo = <>{!semCep && <div className="field"><label htmlFor="qin">CEP</label><input id="qin" className="inp num" inputMode="numeric" value={a.cep} placeholder="00000-000" maxLength={9} style={{ fontSize: 22, height: 56 }} onChange={e => setCep(e.target.value)} />
+      <span className={'small ' + (cepInfo && !cepInfo.encontrado ? '' : 'muted')} aria-live="polite">{buscando ? 'Procurando o endereço…' : achou && a.cep ? <>Endereço: <b>{[a.logradouro, a.bairro !== 'Não informado' ? a.bairro : null].filter(Boolean).join(', ')}{a.logradouro || a.bairro !== 'Não informado' ? ' · ' : ''}{a.cidade} - {a.uf}</b></> : cepInfo && !cepInfo.encontrado ? 'Não achamos esse CEP. Confira os números ou escolha a cidade abaixo.' : 'Digite os 8 números do CEP.'}</span></div>}
+      <button type="button" className="btn sm" style={{ width: 'fit-content' }} onClick={() => setSemCep(!semCep)}>{semCep ? 'Tenho o CEP' : 'Não sei o CEP'}</button>
+      {semCep && <div className="card"><div className="row" style={{ gap: 8 }}>
+        <div className="field" style={{ width: 110 }}><label htmlFor="uf">Estado</label><select id="uf" className="inp" value={cidadeTmp.uf} onChange={e => setCidadeTmp({ ...cidadeTmp, uf: e.target.value })}><option value="">UF</option>{UFS.map(u => <option key={u}>{u}</option>)}</select></div>
+        <div className="field" style={{ flex: 1 }}><label htmlFor="cid">Cidade</label><input id="cid" className="inp" value={cidadeTmp.cidade} onChange={e => setCidadeTmp({ ...cidadeTmp, cidade: e.target.value })} placeholder="Ex.: Recife" /></div></div>
+        <div className="field"><label htmlFor="bai">Bairro (se quiser)</label><input id="bai" className="inp" value={cidadeTmp.bairro} onChange={e => setCidadeTmp({ ...cidadeTmp, bairro: e.target.value })} /></div>
+        <button type="button" className="btn" disabled={!cidadeTmp.uf || cidadeTmp.cidade.trim().length < 2 || buscando} onClick={usarCidade}>{buscando ? 'Procurando…' : 'Usar esta cidade'}</button>
+        {achou && !a.cep && <span className="small muted">Cidade escolhida: <b>{a.cidade} - {a.uf}</b></span>}</div>}</>;
   }
   const ok = respondido(q, a);
   return <CidadaoPagina rodape={<><button className="btn pri block" disabled={!ok} onClick={() => ir(1)}>{n === tot ? 'Ver meus direitos' : 'Continuar'}</button>
-    {!['choice', 'counter', 'multi'].includes(q.type) && <button className="btn block" onClick={() => { if (q.k === 'cep' && !a.bairro) responder('bairro', 'Outro bairro'); ir(1); }}>Não sei responder</button>}</>}>
+    {!['choice', 'counter', 'multi', 'cep'].includes(q.type) && <button className="btn block" onClick={() => ir(1)}>Não sei responder</button>}</>}>
     <div className="qhead"><div className="row between"><button className="btn sm" onClick={() => ir(-1)}><Ic n="back" s={16} />Voltar</button><span className="small muted num">Pergunta {n} de {tot}</span></div><div className="bar"><i className="fill" style={{ width: `${n / tot * 100}%` }} /></div></div>
     <div className="col rise" key={'t' + i} style={{ gap: 8 }}><h1 className="c-h1">{q.t}</h1>{q.help && <p className="muted" style={{ lineHeight: 1.5 }}>{q.help}</p>}</div>
     <div className="col rise" key={'c' + i} style={{ animationDelay: '.08s' }}>{corpo}</div>

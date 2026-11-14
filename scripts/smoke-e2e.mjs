@@ -61,6 +61,19 @@ ok(!/voc[eê] tem direito/i.test(q1.d.texto || ''), 'não afirma "você tem dire
 const q2 = await j('POST', API + '/assistente/perguntar', { pergunta: 'Me cobraram um pix para liberar o benefício' });
 ok(/golpe/i.test(q2.d.texto || ''), 'reconhece golpe');
 
+console.log('Brasil todo');
+const se = await j('GET', API + '/cep/01001000');
+ok(se.d.encontrado && se.d.uf === 'SP', `CEP real de São Paulo: ${se.d.logradouro || ''} ${se.d.cidade}-${se.d.uf} (${se.d.fonte})`);
+let fora = null;
+for (const cep of ['20040002', '40020000', '70040010', '30130010', '50030230']) { const r = await j('GET', API + '/cep/' + cep); if (r.d.encontrado && r.d.uf !== 'SP') { fora = r.d; break; } }
+ok(!!fora, 'CEP de outro estado: ' + (fora ? `${fora.cidade}-${fora.uf}` : 'nenhum encontrado'));
+const ba = await j('POST', API + '/triagens/avaliar', { ...respostas, cidade: 'Salvador', uf: 'BA', bairro: 'Centro' });
+ok(ba.d.resultado.filter(b => b.esf !== 'Federal').every(b => b.status === 'nao'), 'fora de SP, benefícios de SP não se aplicam');
+if (fora?.lat) {
+  const p = await j('GET', `${API}/pontos/perto?lat=${fora.lat}&lng=${fora.lng}&tipo=CRAS`);
+  console.log(`  · pontos perto (OpenStreetMap): ${Array.isArray(p.d) ? p.d.length : 0} CRAS achados`);
+}
+
 console.log('LGPD');
 ok((await j('DELETE', `${API}/triagens/${reg.d.codigo}`, null, H)).s === 204, 'família apagou a triagem');
 ok((await j('GET', `${API}/painel/triagens/${reg.d.codigo}`, null, A)).s === 404, 'painel não encontra mais');

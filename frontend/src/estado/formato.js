@@ -19,9 +19,11 @@ export const ativos = res => (res || []).filter(b => ['prov', 'pode', 'ver'].inc
 export const CATS = ["Renda", "Contas da casa", "Saúde", "Educação e trabalho", "Transporte", "Moradia e alimentação", "Documentos e descontos", "Outros"];
 export const ETAPAS = { triagem: 'Triagem concluída', kit: 'Kit do Direito enviado', agendado: 'Cadastro Único agendado', atendido: 'Atendido no CRAS', conseguiu: 'Benefício concedido', travado: 'Travado' };
 export const BEN_NOME = { cad: 'Cadastro Único', bolsa: 'Bolsa Família', bpci: 'BPC Idoso', bpcp: 'BPC PcD', tar: 'Tarifa Social de Energia', farm: 'Farmácia Popular', desc: 'Desconto Social de Energia', gas: 'Gás do Povo', agua: 'Tarifa Social de Água', pdm: 'Pé-de-Meia', dign: 'Dignidade Menstrual', idj: 'ID Jovem', cpi: 'Carteira da Pessoa Idosa', mcmv: 'Minha Casa, Minha Vida', abono: 'Abono salarial', segd: 'Seguro-desemprego', incl: 'Auxílio-Inclusão', isen: 'Isenção de taxas', prouni: 'Prouni', fies: 'Fies Social', plpcd: 'Passe Livre PcD', sup: 'SuperAção SP', bom: 'Bom Prato', ple: 'Passe Livre Estudantil', tid: 'Transporte grátis 60+', bupcd: 'Bilhete Único Especial PcD', ctd: 'Cartão do Desempregado', mae: 'Mãe Paulistana', pot: 'POT' };
+export const UFS = ['AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 'PA', 'PB', 'PE', 'PI', 'PR', 'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO'];
+/** Bairros do território do CRAS do piloto (mapa de demanda do painel). */
 export const BAIRROS = ['Jardim Ângela', 'Capão Redondo', 'Grajaú', 'Parelheiros', 'Jardim São Luís', 'Campo Limpo'];
 
-/** Faixas de CEP do território (bairroDoCep do protótipo), para responder sem rede. */
+/** Faixas de CEP do piloto (bairroDoCep do protótipo): só a reserva para quando não há rede. */
 export function bairroDoCep(cep) {
   const n = parseInt(String(cep).replace(/\D/g, '').slice(0, 5), 10);
   if (isNaN(n)) return null;

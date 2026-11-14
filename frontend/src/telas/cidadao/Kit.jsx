@@ -1,12 +1,12 @@
 // A14 · Kit do Direito, A15 · Onde ir e A16 · Lembrete da véspera.
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import CidadaoPagina, { Voltar } from '../../componentes/CidadaoPagina.jsx';
 import Mapa from '../../componentes/Mapa.jsx';
 import { Aviso, Carregando, Ic, Marca, Ouvir, Pill, baixar } from '../../componentes/ui.jsx';
 import { triagemApi } from '../../api/servicos.js';
 import { useCidadao } from '../../estado/cidadao.jsx';
-import { useTerritorio } from '../../estado/territorio.js';
+import { buscaNoMapa, usePerto } from '../../estado/territorio.js';
 import { DIAS, MESES, addDias, diaCurto, fmtKm, hoje, isoDia } from '../../estado/formato.js';
 
 export function Kit() {
@@ -33,36 +33,48 @@ export function Kit() {
 }
 
 export function OndeIr() {
-  const { c } = useCidadao();
-  const { perto, centro, pontos, pronto } = useTerritorio();
-  const [tipo, setTipo] = useState('CRAS');
-  const b = c.ans.bairro && c.ans.bairro !== 'Outro bairro' ? c.ans.bairro : 'Jardim Ângela';
-  if (!pronto) return <CidadaoPagina><Voltar para="/kit" rotulo="Kit do Direito" /><Carregando texto="Carregando os pontos de atendimento…" /></CidadaoPagina>;
-  const lista = perto(b, tipo), alvo = lista[0];
-  const outros = perto(b).filter(p => p.id !== alvo.id).slice(0, 4);
-  const gmaps = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(alvo.endereco.split('·')[0] + ' São Paulo SP');
-  return <CidadaoPagina rodape={<Link className="btn pri block" to="/lembrete">Marcar lembrete para ir</Link>}>
+  const { c, atualizar } = useCidadao();
+  const nav = useNavigate();
+  const { state } = useLocation();
+  const [tipo, setTipo] = useState(state?.tipo || 'CRAS');
+  const a = c.ans;
+  const { lista, erro } = usePerto(a.lat, a.lng, tipo);
+  const { lista: todos } = usePerto(a.lat, a.lng, '');
+  const rodape = <Link className="btn pri block" to="/lembrete">Marcar lembrete para ir</Link>;
+  if (a.lat == null) return <CidadaoPagina rodape={rodape}><Voltar para="/kit" rotulo="Kit do Direito" /><h1 className="c-h1">Onde ir</h1>
+    <div className="card"><b>Falta saber onde você mora</b><span className="small muted">Informe o CEP ou a cidade para mostrarmos o CRAS mais perto.</span><button className="btn sm" style={{ width: 'fit-content' }} onClick={() => { atualizar({ q: 9 }); nav('/triagem'); }}>Informar CEP ou cidade</button></div>
+    <div className="card"><b>Enquanto isso</b><span className="small muted">Ligue no Disque Social 121 (de graça) e pergunte qual é o CRAS do seu bairro.</span><a className="btn sm" style={{ width: 'fit-content' }} href="tel:121"><Ic n="phone" s={16} />Ligar 121</a></div></CidadaoPagina>;
+  const casa = [a.lat, a.lng], alvo = lista?.[0];
+  const outros = (todos || []).filter(p => p.id !== alvo?.id).slice(0, 4);
+  const gmaps = alvo ? 'https://www.google.com/maps/dir/?api=1&destination=' + alvo.lat + ',' + alvo.lng : buscaNoMapa(tipo, a);
+  return <CidadaoPagina rodape={rodape}>
     <Voltar para="/kit" rotulo="Kit do Direito" /><h1 className="c-h1">Onde ir</h1>
+    <span className="small muted">Perto de {[a.bairro !== 'Não informado' ? a.bairro : null, a.cidade, a.uf].filter(Boolean).join(', ')}</span>
     <div className="chips">{['CRAS', 'UBS', 'Farmácia', 'Defensoria'].map(t => <button key={t} className="chip" aria-pressed={t === tipo} onClick={() => setTipo(t)}>{t}</button>)}</div>
-    <Mapa centro={[(centro(b)[0] + alvo.lat) / 2, (centro(b)[1] + alvo.lng) / 2]} zoom={13} pontos={pontos} origem={centro(b)} destino={[alvo.lat, alvo.lng]} rotulo={'Rota da casa até ' + alvo.nome} />
-    <div className="card rise"><div className="row between"><b style={{ fontSize: 18 }}>{alvo.nome}</b><Pill t={fmtKm(alvo.km)} /></div><span className="small muted">{alvo.endereco}</span>
-      <div className="row small"><Ic n="clock" s={16} c="#17704A" />{alvo.horario}</div>
-      <div className="row"><a className="btn pri" style={{ flex: 1, height: 48 }} href={gmaps} target="_blank" rel="noopener noreferrer">Como chegar</a><a className="btn" style={{ flex: 1 }} href="tel:156"><Ic n="phone" s={17} />Central 156</a></div>
-      <span className="xs muted">Distância aproximada a partir do centro do bairro {b}.</span></div>
-    <div className="card"><b>Outros lugares perto</b>{outros.map(p => <div key={p.id} className="row" style={{ padding: '8px 0', borderBottom: '1px solid var(--rule)' }}><Ic n="pin" s={18} c="#5d5f60" /><span className="col" style={{ gap: 0, flex: 1 }}><span style={{ fontWeight: 500 }}>{p.nome}</span><span className="xs muted">{p.tipo}{p.obs ? ' · ' + p.obs : ''} · {p.horario}</span></span><span className="small muted num">{fmtKm(p.km)}</span></div>)}</div>
+    {lista === null ? <Carregando texto="Procurando por perto…" /> : <>
+      <Mapa centro={alvo ? [(casa[0] + alvo.lat) / 2, (casa[1] + alvo.lng) / 2] : casa} zoom={alvo && alvo.km > 8 ? 11 : 13} pontos={todos || []} origem={casa} destino={alvo ? [alvo.lat, alvo.lng] : null} rotulo={alvo ? 'Rota da casa até ' + alvo.nome : 'Mapa perto da sua casa'} />
+      {alvo ? <div className="card rise"><div className="row between"><b style={{ fontSize: 18 }}>{alvo.nome}</b><Pill t={fmtKm(alvo.km)} /></div><span className="small muted">{alvo.endereco}</span>
+        <div className="row small"><Ic n="clock" s={16} c="#17704A" />{alvo.horario}</div>
+        <div className="row"><a className="btn pri" style={{ flex: 1, height: 48 }} href={gmaps} target="_blank" rel="noopener noreferrer">Como chegar</a>{alvo.telefone ? <a className="btn" style={{ flex: 1 }} href={'tel:' + alvo.telefone}><Ic n="phone" s={17} />Ligar</a> : <a className="btn" style={{ flex: 1 }} href="tel:121"><Ic n="phone" s={17} />Disque 121</a>}</div>
+        <span className="xs muted">{alvo.fonte === 'OpenStreetMap' ? 'Local do mapa aberto (OpenStreetMap). Confira o endereço e o horário antes de ir.' : 'Distância aproximada a partir do seu endereço.'}{alvo.obs ? ' · ' + alvo.obs : ''}</span></div>
+        : <div className="card rise"><b>Não achamos {tipo === 'Farmácia' ? 'farmácia' : tipo} no mapa perto de você</b><span className="small muted">O mapa aberto ainda não tem todos os lugares. Procure no mapa do celular ou ligue no Disque Social 121, de graça.</span>
+          <div className="row"><a className="btn pri" style={{ flex: 1 }} href={buscaNoMapa(tipo, a)} target="_blank" rel="noopener noreferrer">Procurar no mapa</a><a className="btn" style={{ flex: 1 }} href="tel:121"><Ic n="phone" s={17} />Disque 121</a></div></div>}
+      {erro && <Aviso>Sem conexão agora. Mostrando o último resultado salvo.</Aviso>}
+      {outros.length > 0 && <div className="card"><b>Outros lugares perto</b>{outros.map(p => <div key={p.id} className="row" style={{ padding: '8px 0', borderBottom: '1px solid var(--rule)' }}><Ic n="pin" s={18} c="#5d5f60" /><span className="col" style={{ gap: 0, flex: 1 }}><span style={{ fontWeight: 500 }}>{p.nome}</span><span className="xs muted">{p.tipo}{p.obs ? ' · ' + p.obs : ''} · {p.horario}</span></span><span className="small muted num">{fmtKm(p.km)}</span></div>)}</div>}
+    </>}
   </CidadaoPagina>;
 }
 
 export function Lembrete() {
   const { c, kit, atualizar } = useCidadao();
-  const { perto, pronto } = useTerritorio();
+  const { lista: crasPerto } = usePerto(c.ans.lat, c.ans.lng, 'CRAS');
   const nav = useNavigate();
   const t0 = hoje();
   const [ym, setYm] = useState([t0.getFullYear(), t0.getMonth()]);
   const [sel, setSel] = useState(c.lembrete?.data || null);
   const [canal, setCanal] = useState(c.lembrete?.canal || 'app');
   const [erro, setErro] = useState(null);
-  const cras = pronto ? perto(c.ans.bairro || 'Jardim Ângela', 'CRAS')[0] : { nome: 'CRAS', endereco: '' };
+  const cras = crasPerto?.[0] || { nome: 'CRAS do seu bairro', endereco: '' };
   const primeiro = new Date(ym[0], ym[1], 1), dias = new Date(ym[0], ym[1] + 1, 0).getDate();
   const dsel = sel ? new Date(sel + 'T12:00:00') : null;
   const docs = kit[0]?.docs || [];

@@ -22,7 +22,7 @@ try {
     await page.getByRole('button', { name: 'Não', exact: true }).click(); await cont();          // Cadastro Único
     await page.getByRole('button', { name: 'Sim', exact: true }).click(); await cont();          // remédio
     await page.getByRole('button', { name: 'Sim', exact: true }).click(); await cont();          // luz
-    await page.getByLabel('CEP').fill('04938000'); await page.getByText('Jardim Ângela', { exact: false }).first().waitFor(); await cont();
+    await page.getByLabel('CEP').fill('04938000'); await page.getByText('São Paulo - SP', { exact: false }).first().waitFor({ timeout: 20000 }); await cont();
   });
   await passo('consentimento e resultado', async () => {
     await page.getByRole('switch', { name: 'Registrar a triagem anônima' }).click();
@@ -30,6 +30,15 @@ try {
     await page.getByText('BPC Idoso').first().waitFor({ timeout: 15000 });
   });
   await passo('kit do direito', async () => { await page.getByRole('link', { name: 'Montar o Kit do Direito' }).click(); await page.getByText('No balcão, diga').waitFor(); });
+  await passo('onde ir', async () => { await page.getByRole('link', { name: 'Ver onde ir' }).click(); await page.getByText(/CRAS|Não achamos/).first().waitFor({ timeout: 30000 }); });
+  await passo('quem não sabe o CEP escolhe a cidade', async () => {
+    await page.goto(URL + '/perfil');
+    await page.locator('div.row', { hasText: 'Qual o CEP da casa?' }).getByRole('button', { name: 'Editar' }).click();
+    await page.getByRole('button', { name: 'Não sei o CEP' }).click();
+    await page.getByLabel('Estado').selectOption('BA'); await page.getByLabel('Cidade').fill('Salvador');
+    await page.getByRole('button', { name: 'Usar esta cidade' }).click();
+    await page.getByText('Salvador - BA').first().waitFor({ timeout: 20000 });
+  });
   await passo('assistente', async () => {
     await page.goto(URL + '/duvidas');
     await page.getByRole('button', { name: 'Quem tem direito ao BPC?' }).click();

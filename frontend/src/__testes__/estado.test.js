@@ -12,7 +12,8 @@ describe('formatação', () => {
 
 describe('triagem', () => {
   it('tem 10 perguntas e muda o texto para outra pessoa', () => { expect(perguntas(false)).toHaveLength(10); expect(perguntas(true)[1].t).toContain('da pessoa'); });
-  it('CEP só conta como respondido com bairro', () => { const q = perguntas(false)[9]; expect(respondido(q, { ...respostasVazias(), cep: '04938-000' })).toBe(false); expect(respondido(q, { ...respostasVazias(), bairro: 'Grajaú' })).toBe(true); });
+  it('CEP só conta como respondido com cidade e UF', () => { const q = perguntas(false)[9]; expect(respondido(q, { ...respostasVazias(), cep: '04938-000' })).toBe(false); expect(respondido(q, { ...respostasVazias(), cidade: 'Recife', uf: 'PE' })).toBe(true); });
+  it('CEP, rua e coordenadas não saem do aparelho', () => { const m = paraMotor({ ...respostasVazias(), cep: '50000-000', logradouro: 'Rua A', lat: -8, lng: -34, cidade: 'Recife', uf: 'PE' }); expect(m.cep).toBeUndefined(); expect(m.lat).toBeUndefined(); expect(m.logradouro).toBeUndefined(); expect(m).toMatchObject({ cidade: 'Recife', uf: 'PE' }); });
   it('converte respostas para o motor', () => { const m = paraMotor({ ...respostasVazias(), renda: '760', idade: '67', grupos: ['c717', 'nen'] }); expect(m).toMatchObject({ renda: 760, idade: 67, criancas: 'sim', grupos: ['c717'] }); });
 });
 

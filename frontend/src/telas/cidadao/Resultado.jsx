@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import CidadaoPagina, { Voltar } from '../../componentes/CidadaoPagina.jsx';
 import { Aviso, Carregando, Ic, Ouvir, Pill } from '../../componentes/ui.jsx';
 import { useCidadao } from '../../estado/cidadao.jsx';
-import { useTerritorio } from '../../estado/territorio.js';
+import { usePerto } from '../../estado/territorio.js';
 import { CATS, ST, ativos, brl, fmtKm } from '../../estado/formato.js';
 
 function BenCard({ b, i, onClick }) {
@@ -18,12 +18,12 @@ function BenCard({ b, i, onClick }) {
 export function Resultado() {
   const { c, res, kit, erro, refazer, outra } = useCidadao();
   const nav = useNavigate();
-  const { perto, pronto } = useTerritorio();
+  const { lista: crasPerto } = usePerto(c.ans.lat, c.ans.lng, 'CRAS');
   if (!res.length) return <CidadaoPagina>{erro ? <Aviso tipo="erro">{erro}</Aviso> : <Carregando texto="Calculando seus direitos…" />}</CidadaoPagina>;
   const at = ativos(res), tem = res.filter(b => b.status === 'tem'), nao = res.filter(b => b.status === 'nao');
   const fala = `${outra ? 'A pessoa' : 'Você'} provavelmente pode receber ${at.length} ${at.length === 1 ? 'benefício' : 'benefícios'}: ${at.map(b => b.nome).join(', ')}. Quem decide é o órgão responsável.`;
   const cats = CATS.filter(x => at.some(b => b.cat === x));
-  const cras = c.ans.bairro && pronto ? perto(c.ans.bairro, 'CRAS')[0] : null;
+  const cras = crasPerto?.[0] || null;
   const pergunta = q => nav('/duvidas', { state: { pergunta: q } });
   const primeiro = at.find(b => b.id !== 'cad');
   return <CidadaoPagina largo rodape={<Link className="btn pri block" to="/kit">Montar o Kit do Direito</Link>}>

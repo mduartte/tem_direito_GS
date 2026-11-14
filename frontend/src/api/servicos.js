@@ -16,7 +16,9 @@ export const triagemApi = {
 export const atendimentoApi = {
   cep: cep => api(`/cep/${cep}`),
   bairros: () => api('/bairros'),
-  pontos: tipo => api('/pontos' + q({ tipo }))
+  pontos: tipo => api('/pontos' + q({ tipo })),
+  perto: (lat, lng, tipo) => api('/pontos/perto' + q({ lat, lng, tipo })),
+  local: (cidade, uf, bairro) => api('/local' + q({ cidade, uf, bairro }))
 };
 
 export const contaApi = {

@@ -5,7 +5,7 @@ import CidadaoPagina, { Voltar } from '../../componentes/CidadaoPagina.jsx';
 import { Ic, Passos, Pill } from '../../componentes/ui.jsx';
 import { triagemApi } from '../../api/servicos.js';
 import { useCidadao } from '../../estado/cidadao.jsx';
-import { useTerritorio } from '../../estado/territorio.js';
+import { usePerto } from '../../estado/territorio.js';
 import { addDias, ativos, brl, diaCurto, dmy, dmyy, hoje, quando } from '../../estado/formato.js';
 import { perguntas } from '../../estado/perguntas.js';
 
@@ -90,16 +90,17 @@ export function MeusDireitos() {
 export function Negado() {
   const { id } = useParams();
   const { c, res } = useCidadao();
-  const { pontos } = useTerritorio();
   const nav = useNavigate();
   const b = res.find(x => x.id === id);
   const dn = c.negadoEm ? new Date(c.negadoEm) : hoje(), prazo = addDias(dn, 30), resta = Math.max(0, Math.round((prazo - hoje()) / 864e5));
-  const def = pontos.find(p => p.tipo === 'Defensoria');
-  return <CidadaoPagina rodape={<button className="btn pri block" onClick={() => nav('/onde-ir')}>Ver a Defensoria no mapa</button>}>
+  const { lista: defs } = usePerto(c.ans.lat, c.ans.lng, 'Defensoria');
+  const def = defs?.[0];
+  return <CidadaoPagina rodape={<button className="btn pri block" onClick={() => nav('/onde-ir', { state: { tipo: 'Defensoria' } })}>Ver a Defensoria no mapa</button>}>
     <Voltar para="/meus-direitos" rotulo="Meus direitos" />
     <div className="card rise"><div className="row between"><b style={{ fontSize: 16 }}>{b ? b.nome : 'Pedido'}</b><Pill t="Negado" k="neg" /></div><span className="small muted" style={{ lineHeight: 1.5 }}>Resposta registrada em {dmyy(dn)}. Dá para recorrer em até <b style={{ color: 'var(--ink)' }}>30 dias</b>.</span>
       <div className="row between small"><span className="muted">Prazo para recorrer</span><b className="num">até {dmyy(prazo)} · faltam {resta} dias</b></div><div className="bar"><i className="fill" style={{ width: `${(30 - resta) / 30 * 100}%`, background: 'var(--neg)' }} /></div></div>
     <div className="card rise"><b>O que fazer agora</b><Passos itens={[['Leia o motivo na carta do INSS', 'ou no Meu INSS, em “Resultado”', 'now'], ['Procure a Defensoria Pública', 'atendimento gratuito', 'next'], ['Entre com o recurso', 'a Defensoria ajuda a escrever', 'next']]} /></div>
+    {!def && <div className="card rise"><span className="small muted">Procure a Defensoria Pública do seu estado. O atendimento é de graça. Se não houver na sua cidade, o CRAS indica onde ir.</span></div>}
     {def && <div className="card rise"><div className="row"><Ic n="scale" s={22} c="#17704A" /><div className="col" style={{ gap: 2 }}><b>{def.nome}</b><span className="small muted">{def.endereco} · {def.horario}</span></div></div></div>}
   </CidadaoPagina>;
 }

@@ -10,22 +10,24 @@ export const perguntas = outra => [
   { k: 'cad', type: 'choice', t: 'A família já está no Cadastro Único?', opts: [['sim', 'Sim'], ['nao', 'Não'], ['naosei', 'Não sei']], help: 'É o cadastro feito no CRAS. Quem tem, recebe um número chamado NIS.', why: 'É o primeiro passo para quase todos os benefícios.' },
   { k: 'remedio', type: 'choice', t: 'Alguém usa remédio de uso contínuo, como pressão, diabetes, asma ou colesterol?', opts: [['sim', 'Sim'], ['nao', 'Não']], why: 'Esses remédios, anticoncepcionais e fraldas geriátricas saem de graça na Farmácia Popular.' },
   { k: 'luz', type: 'choice', t: 'A conta de luz está no nome de alguém da casa?', opts: [['sim', 'Sim'], ['nao', 'Não, está no nome do dono'], ['semluz', 'Não temos conta de luz']], why: 'O desconto da Tarifa Social entra na conta de quem é titular.' },
-  { k: 'cep', type: 'cep', t: 'Qual o CEP da casa?', help: 'Só usamos para achar o atendimento mais perto. Se não souber, escolha o bairro.', why: 'Mostramos o CRAS, a UBS e a farmácia mais perto.' }
+  { k: 'cep', type: 'cep', t: 'Qual o CEP da casa?', help: 'Serve para achar o CRAS mais perto e ver os benefícios da sua cidade. Se não souber, escolha o estado e a cidade.', why: 'Mostramos o CRAS, a UBS e a farmácia mais perto. Alguns benefícios só existem em certas cidades ou estados. O CEP fica só no seu aparelho.' }
 ];
 
 export function respondido(q, a) {
   const v = a[q.k];
-  if (q.k === 'cep') return !!a.bairro;
+  if (q.k === 'cep') return !!(a.cidade && a.uf);
   if (q.type === 'counter') return v >= 1;
   if (q.type === 'multi') return Array.isArray(v) && v.length > 0;
   return v !== null && v !== '' && v !== undefined;
 }
 
-export const respostasVazias = () => ({ pessoas: 2, idade: null, pcd: null, renda: null, aposent: null, criancas: null, grupos: [], cad: null, remedio: null, luz: null, cep: '', bairro: null });
+export const respostasVazias = () => ({ pessoas: 2, idade: null, pcd: null, renda: null, aposent: null, criancas: null, grupos: [], cad: null, remedio: null, luz: null, cep: '', bairro: null, cidade: null, uf: null, logradouro: '', lat: null, lng: null });
 
 /** O motor recebe "criancas" (sim/nao); a pergunta de grupos já diz isso. */
 export function paraMotor(a) {
   const g = a.grupos || [];
-  return { ...a, idade: a.idade === null || a.idade === '' ? null : +a.idade, renda: a.renda === null || a.renda === '' ? null : +a.renda,
+  // CEP, rua e coordenadas ficam no aparelho: o servidor só precisa de bairro, cidade e UF.
+  const { cep, logradouro, lat, lng, ...resto } = a; // eslint-disable-line no-unused-vars
+  return { ...resto, idade: a.idade === null || a.idade === '' ? null : +a.idade, renda: a.renda === null || a.renda === '' ? null : +a.renda,
     criancas: g.includes('c06') || g.includes('c717') ? 'sim' : 'nao', grupos: g.filter(x => x !== 'nen') };
 }
