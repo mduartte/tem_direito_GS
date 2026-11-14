@@ -8,7 +8,7 @@ export function Ic({ n, s = 18, c = 'currentColor', w = 1.8 }) {
 
 /** Marca do Tem Direito: balão de fala com um "certo". */
 export function Marca({ s = 28 }) {
-  return <svg width={s} height={s} viewBox="0 0 32 32" aria-hidden="true" style={{ flexShrink: 0 }}><path d="M6 4h20a3 3 0 0 1 3 3v13a3 3 0 0 1-3 3H14l-6 5v-5H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z" fill="#17704A" /><path d="M10.5 13.5l3.5 3.5 7.5-7.5" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+  return <svg width={s} height={s} viewBox="0 0 32 32" aria-hidden="true" style={{ flexShrink: 0 }}><defs><linearGradient id="td-marca" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#059669" /><stop offset="1" stopColor="#0E7490" /></linearGradient></defs><path d="M6 4h20a3 3 0 0 1 3 3v13a3 3 0 0 1-3 3H14l-6 5v-5H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z" fill="url(#td-marca)" /><path d="M10.5 13.5l3.5 3.5 7.5-7.5" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
 export const Pill = ({ t, k = '' }) => <span className={'pill ' + k}>{t}</span>;
