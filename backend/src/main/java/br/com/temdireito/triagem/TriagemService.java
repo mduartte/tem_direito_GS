@@ -72,7 +72,8 @@ public class TriagemService {
     /** Roda o motor com as regras publicadas e monta o Kit com os documentos editados na gestão. */
     public Avaliacao avaliar(Respostas a) {
         Parametros p = regras.publicados();
-        List<ResultadoBeneficio> res = motor.avaliar(a, p);
+        // Benefícios do Estado e da cidade de São Paulo só valem para quem mora lá.
+        List<ResultadoBeneficio> res = br.com.temdireito.regras.servico.FiltroRegional.aplicar(motor.avaliar(a, p), a);
         Map<String, List<String>> docs = new HashMap<>(KitService.DOCS_PADRAO);
         kitPassos.findAll().forEach(k -> docs.put(k.id, json.ler(k.documentos, LISTA)));
         List<ResultadoBeneficio> ativos = res.stream().filter(ResultadoBeneficio::ativo).toList();
@@ -104,7 +105,9 @@ public class TriagemService {
         t.chaveHash = seguranca.hash(chave);
         t.criadaEm = LocalDateTime.now();
         t.atualizadaEm = t.criadaEm;
-        t.bairro = a.bairro == null || a.bairro.isBlank() ? "Outro bairro" : a.bairro;
+        t.bairro = a.bairro == null || a.bairro.isBlank() ? "Não informado" : a.bairro;
+        t.cidade = a.cidade == null || a.cidade.isBlank() ? null : a.cidade.trim();
+        t.uf = a.uf == null || a.uf.isBlank() ? null : a.uf.trim().toUpperCase();
         t.pessoas = Math.max(1, a.pessoas);
         double rpc = a.rendaPorPessoa();
         // Guardamos a renda por pessoa arredondada, nunca a renda exata da casa.

@@ -1,93 +1,70 @@
 package br.com.temdireito.atendimento;
 
-import br.com.temdireito.config.AppProperties;
-import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestClient;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * Onde ir: CEP para bairro e pontos de atendimento do mapa.
- *
- * <p>O CEP é consultado no ViaCEP para mostrar a rua; se o serviço estiver
- * fora do ar (ou bloqueado na rede), o bairro sai das faixas de CEP do
- * território cadastradas na tabela {@code bairro}. O CEP não é guardado.</p>
+ * Onde ir, para o Brasil todo: CEP para endereço, cidade para coordenadas e
+ * pontos de atendimento por perto. O CEP e a localização não são guardados.
  */
 @RestController
 @RequestMapping("/api")
-@Tag(name = "Atendimento", description = "CEP, bairros e pontos de atendimento")
+@Tag(name = "Atendimento", description = "CEP, localização e pontos de atendimento")
 public class AtendimentoController {
 
-    private static final Logger log = LoggerFactory.getLogger(AtendimentoController.class);
     private final BairroRepository bairros;
     private final PontoAtendimentoRepository pontos;
-    private final RestClient viacep;
+    private final LocalizacaoService local;
 
-    public AtendimentoController(BairroRepository bairros, PontoAtendimentoRepository pontos, AppProperties props) {
+    public AtendimentoController(BairroRepository bairros, PontoAtendimentoRepository pontos, LocalizacaoService local) {
         this.bairros = bairros;
         this.pontos = pontos;
-        SimpleClientHttpRequestFactory f = new SimpleClientHttpRequestFactory();
-        f.setConnectTimeout(2000);
-        f.setReadTimeout(2500);
-        this.viacep = RestClient.builder().baseUrl(props.viacepUrl() == null ? "https://viacep.com.br/ws" : props.viacepUrl()).requestFactory(f).build();
+        this.local = local;
     }
 
+    /** Bairros do território da unidade (usados no mapa de demanda do painel). */
     @GetMapping("/bairros")
     public List<Bairro> bairros() {
         return bairros.findAll();
     }
 
     @GetMapping("/pontos")
-    @Operation(summary = "Pontos de atendimento ativos (CRAS, UBS, farmácias, Defensoria)")
+    @Operation(summary = "Pontos cadastrados na gestão")
     public List<PontoAtendimento> pontos(@RequestParam(required = false) String tipo) {
         return pontos.findByAtivoTrueOrderByTipoAscNomeAsc().stream()
                 .filter(p -> tipo == null || tipo.isBlank() || p.tipo.equalsIgnoreCase(tipo)).toList();
     }
 
-    @GetMapping("/cep/{cep}")
-    @Operation(summary = "Descobre o bairro do CEP (ViaCEP com reserva pelas faixas do território)")
-    public Map<String, Object> cep(@PathVariable String cep) {
-        String d = cep.replaceAll("\\D", "");
-        Map<String, Object> out = new LinkedHashMap<>();
-        out.put("cep", d);
-        if (d.length() != 8) {
-            out.put("valido", false);
-            return out;
-        }
-        out.put("valido", true);
-        out.put("bairro", bairroPorFaixa(d));
-        out.put("fonte", "faixas do território");
-        try {
-            JsonNode r = viacep.get().uri("/{cep}/json/", d).retrieve().body(JsonNode.class);
-            if (r != null && !r.has("erro")) {
-                out.put("logradouro", r.path("logradouro").asText(""));
-                out.put("bairroViaCep", r.path("bairro").asText(""));
-                out.put("cidade", r.path("localidade").asText(""));
-                out.put("uf", r.path("uf").asText(""));
-                out.put("fonte", "ViaCEP");
-            }
-        } catch (Exception e) {
-            log.debug("ViaCEP indisponível, usando faixas: {}", e.getMessage());
-        }
-        return out;
+    @GetMapping("/pontos/perto")
+    @Operation(summary = "CRAS, UBS, farmácias e Defensoria perto de uma coordenada (cadastro + OpenStreetMap)")
+    public List<Map<String, Object>> perto(@RequestParam double lat, @RequestParam double lng, @RequestParam(required = false) String tipo) {
+        return local.perto(lat, lng, tipo);
     }
 
-    /** Mesma lógica do bairroDoCep() do protótipo, mas lendo as faixas do banco. */
-    String bairroPorFaixa(String cep8) {
-        int n = Integer.parseInt(cep8.substring(0, 5));
-        for (Bairro b : bairros.findAll()) {
-            if (b.cepFaixas == null) continue;
-            for (String faixa : b.cepFaixas.split(";")) {
-                String[] p = faixa.trim().split("-");
-                if (p.length == 2 && n >= Integer.parseInt(p[0]) && n <= Integer.parseInt(p[1])) return b.nome;
-            }
+    @GetMapping("/cep/{cep}")
+    @Operation(summary = "Endereço e coordenadas de qualquer CEP do Brasil")
+    public Map<String, Object> cep(@PathVariable String cep) {
+        return local.cep(cep);
+    }
+
+    @GetMapping("/local")
+    @Operation(summary = "Coordenadas de uma cidade (para quem não sabe o CEP)")
+    public Map<String, Object> cidade(@RequestParam String cidade, @RequestParam String uf, @RequestParam(required = false) String bairro) {
+        double[] c = local.geocodificar(null, bairro, cidade, uf);
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("cidade", cidade);
+        m.put("uf", uf.toUpperCase());
+        m.put("bairro", bairro);
+        m.put("encontrado", c != null);
+        if (c != null) {
+            m.put("lat", c[0]);
+            m.put("lng", c[1]);
         }
-        return null;
+        return m;
     }
 }

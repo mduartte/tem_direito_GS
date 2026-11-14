@@ -39,8 +39,11 @@ public class Respostas {
     public String luz;
     /** CEP informado, só para achar o atendimento mais perto. */
     public String cep;
-    /** Bairro do piloto (vem do CEP ou da escolha manual). */
+    /** Bairro (vem do CEP ou da escolha manual). */
     public String bairro;
+    /** Cidade e UF: decidem se os benefícios do Estado e da cidade de São Paulo valem. O motor não usa. */
+    public String cidade;
+    public String uf;
 
     public Respostas() {
     }

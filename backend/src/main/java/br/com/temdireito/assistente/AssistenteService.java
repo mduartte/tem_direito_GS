@@ -94,13 +94,14 @@ public class AssistenteService {
     /** Contexto da família, igual ao contextoFamilia() do protótipo. */
     public Map<String, Object> contexto(Respostas a, boolean outra) {
         if (a == null) return Map.of("feito", false, "texto", "A pessoa ainda não fez a triagem do app.", "status", Map.of());
-        List<ResultadoBeneficio> res = motor.avaliar(a, regras.publicados());
+        List<ResultadoBeneficio> res = br.com.temdireito.regras.servico.FiltroRegional.aplicar(motor.avaliar(a, regras.publicados()), a);
         Map<String, String> status = new LinkedHashMap<>();
         res.forEach(b -> status.put(b.id, b.status));
         StringBuilder sb = new StringBuilder("Triagem feita").append(outra ? " por um acompanhante, para outra pessoa" : "").append(": ")
                 .append(a.pessoas).append(" pessoas na casa; renda da casa ").append(Formatacao.brl(a.renda == null ? 0 : a.renda))
                 .append(" por mês; idade ").append(a.idade == null ? "não informada" : a.idade)
-                .append("; bairro ").append(a.bairro == null ? "não informado" : a.bairro).append(". Resultado do motor de regras.");
+                .append("; bairro ").append(a.bairro == null ? "não informado" : a.bairro)
+                .append("; cidade ").append(a.cidade == null ? "não informada" : a.cidade + (a.uf == null ? "" : " - " + a.uf)).append(". Resultado do motor de regras.");
         for (String s : List.of("prov", "pode", "ver", "tem", "nao")) {
             String nomes = String.join(", ", res.stream().filter(b -> s.equals(b.status)).map(b -> b.nome).toList());
             sb.append(' ').append(STATUS_TXT.get(s)).append(": ").append(nomes.isEmpty() ? "nenhum" : nomes).append('.');

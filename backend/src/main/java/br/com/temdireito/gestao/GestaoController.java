@@ -95,7 +95,8 @@ public class GestaoController {
         Parametros rasc = regras.comRascunhos(s.rascunhos());
         Map<String, Object> out = new LinkedHashMap<>();
         if (s.respostas() != null) {
-            List<ResultadoBeneficio> antes = motor.avaliar(s.respostas(), pub), depois = motor.avaliar(s.respostas(), rasc);
+            List<ResultadoBeneficio> antes = FiltroRegional.aplicar(motor.avaliar(s.respostas(), pub), s.respostas());
+            List<ResultadoBeneficio> depois = FiltroRegional.aplicar(motor.avaliar(s.respostas(), rasc), s.respostas());
             out.put("publicado", antes);
             out.put("rascunho", depois);
             out.put("kit", kit.montar(s.respostas(), depois));

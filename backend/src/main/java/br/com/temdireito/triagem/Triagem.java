@@ -25,6 +25,9 @@ public class Triagem {
     @Column(name = "atualizada_em")
     public LocalDateTime atualizadaEm;
     public String bairro;
+    /** Cidade e UF (o app vale para o Brasil todo). Nunca o CEP nem a rua. */
+    public String cidade;
+    public String uf;
     public Integer pessoas;
     /** Renda por pessoa, arredondada (não a renda exata da casa). */
     @Column(name = "renda_pc")

@@ -168,6 +168,8 @@ public class PainelService {
         m.put("codigo", t.codigo);
         m.put("criadaEm", t.criadaEm);
         m.put("bairro", t.bairro);
+        m.put("cidade", t.cidade);
+        m.put("uf", t.uf);
         m.put("pessoas", t.pessoas);
         m.put("rendaPc", t.rendaPc);
         m.put("beneficios", beneficios(t));

@@ -256,3 +256,7 @@ CREATE TABLE execucao_tarefa (
     detalhe       VARCHAR2(1000),
     manual        NUMBER(1)     DEFAULT 0 NOT NULL
 );
+
+-- Brasil todo: cidade e UF na triagem (migração V3)
+ALTER TABLE triagem ADD (cidade VARCHAR2(80), uf VARCHAR2(2));
+CREATE INDEX ix_triagem_uf_cidade ON triagem (uf, cidade);

@@ -303,6 +303,8 @@ public class DemoSeeder implements ApplicationRunner {
             Triagem t = new Triagem();
             t.codigo = "T-" + String.format("%04d", 361 + i);
             t.bairro = it.l().bairro();
+            t.cidade = "São Paulo";
+            t.uf = "SP";
             t.etapa = it.l().etapa();
             t.criadaEm = it.data().atTime(8 + (i % 9), (i * 7) % 60);
             t.atualizadaEm = t.criadaEm;

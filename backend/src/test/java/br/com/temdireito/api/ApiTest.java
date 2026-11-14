@@ -19,7 +19,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Cobrem o fluxo do cidadão, a LGPD (consentimento e apagar), o login em duas
  * etapas do painel, as permissões por perfil, a publicação de regra e as automações.
  */
-@SpringBootTest(properties = {"app.ia-service-url=http://localhost:1", "app.viacep-url=http://localhost:1"})
+@SpringBootTest(properties = {"app.ia-service-url=http://localhost:1", "app.viacep-url=http://localhost:1", "app.brasilapi-url=http://localhost:1",
+        "app.nominatim-url=http://localhost:1", "app.overpass-url=http://localhost:1"})
 @AutoConfigureMockMvc
 class ApiTest {
 
@@ -147,5 +148,32 @@ class ApiTest {
     void cepCaiNaFaixaDoTerritorio() throws Exception {
         mvc.perform(get("/api/cep/04935-000")).andExpect(jsonPath("$.bairro").value("Jardim Ângela"));
         mvc.perform(get("/api/pontos?tipo=CRAS")).andExpect(jsonPath("$.length()").value(6));
+    }
+
+    @Test
+    void beneficiosDeSaoPauloSoValemParaQuemMoraLa() throws Exception {
+        String base = "{\"pessoas\":1,\"idade\":70,\"pcd\":\"nao\",\"renda\":0,\"aposent\":\"nao\",\"criancas\":\"nao\",\"grupos\":[\"ido\"],\"cad\":\"nao\",\"remedio\":\"sim\",\"luz\":\"sim\",";
+        JsonNode sp = json(mvc.perform(post("/api/triagens/avaliar").contentType(MediaType.APPLICATION_JSON)
+                .content(base + "\"cidade\":\"São Paulo\",\"uf\":\"SP\"}")).andReturn()).get("resultado");
+        JsonNode ba = json(mvc.perform(post("/api/triagens/avaliar").contentType(MediaType.APPLICATION_JSON)
+                .content(base + "\"cidade\":\"Salvador\",\"uf\":\"BA\"}")).andReturn()).get("resultado");
+        boolean algumSpAtivo = false;
+        for (int i = 0; i < sp.size(); i++) {
+            JsonNode a = sp.get(i), b = ba.get(i);
+            if ("Federal".equals(a.get("esf").asText())) {
+                assertEquals(a.get("status").asText(), b.get("status").asText(), "federal não muda: " + a.get("id"));
+            } else {
+                assertEquals("nao", b.get("status").asText(), "fora de SP não se aplica: " + b.get("id"));
+                if (!"nao".equals(a.get("status").asText())) algumSpAtivo = true;
+            }
+        }
+        assertTrue(algumSpAtivo, "em São Paulo algum benefício estadual ou municipal se aplica");
+    }
+
+    @Test
+    void pontosPertoUsaOCadastroQuandoOMapaAbertoNaoResponde() throws Exception {
+        mvc.perform(get("/api/pontos/perto?lat=-23.7209&lng=-46.7798&tipo=CRAS"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].nome").value("CRAS Vila Santa Lúcia"));
+        mvc.perform(get("/api/cep/12345")).andExpect(jsonPath("$.valido").value(false));
     }
 }
