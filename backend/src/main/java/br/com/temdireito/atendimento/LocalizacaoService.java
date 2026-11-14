@@ -60,7 +60,7 @@ public class LocalizacaoService {
         this.overpass = overpass;
         SimpleClientHttpRequestFactory f = new SimpleClientHttpRequestFactory();
         f.setConnectTimeout(3000);
-        f.setReadTimeout(20000);
+        f.setReadTimeout(8000); // espera curta: se um servidor do mapa travar, passa para o próximo
         // Os serviços do OpenStreetMap exigem identificar o aplicativo.
         this.http = RestClient.builder().requestFactory(f).defaultHeader("User-Agent", "TemDireito/1.0 (projeto academico FIAP; github.com/mduartte/tem_direito_GS)").build();
     }
@@ -179,8 +179,11 @@ public class LocalizacaoService {
             m.put("fonte", "cadastro");
             out.add(m);
         }
+        // Os tipos são consultados em paralelo para a tela "Onde ir" não esperar um de cada vez.
+        Map<String, java.util.concurrent.CompletableFuture<List<Map<String, Object>>>> futuros = new LinkedHashMap<>();
+        for (String t : tipos) futuros.put(t, java.util.concurrent.CompletableFuture.supplyAsync(() -> osm(lat, lng, t)));
         for (String t : tipos) {
-            for (Map<String, Object> o : osm(lat, lng, t)) {
+            for (Map<String, Object> o : futuros.get(t).join()) {
                 Map<String, Object> m = new LinkedHashMap<>(o);
                 m.put("km", km(lat, lng, (Double) o.get("lat"), (Double) o.get("lng")));
                 // Não repete um lugar que já está no cadastro (mesmo tipo a menos de 150 m).
