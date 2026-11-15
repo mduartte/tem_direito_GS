@@ -199,7 +199,52 @@ public class LocalizacaoService {
     /** Consulta o Overpass (OpenStreetMap). A coordenada é arredondada no cache (~1 km). */
     List<Map<String, Object>> osm(double lat, double lng, String tipo) {
         String chave = tipo + ":" + Math.round(lat * 100) + ":" + Math.round(lng * 100);
-        return cacheOsm.computeIfAbsent(chave, k -> consultarOsm(lat, lng, tipo));
+        return cacheOsm.computeIfAbsent(chave, k -> {
+            List<Map<String, Object>> r = consultarOsm(lat, lng, tipo);
+            // O Overpass vive sobrecarregado ou sem dados na região: tenta a busca por nome do Nominatim.
+            return r.isEmpty() ? buscarPorNome(lat, lng, tipo) : r;
+        });
+    }
+
+    /** Termos de busca por nome, do mais específico ao mais geral. */
+    static final Map<String, List<String>> TERMOS = Map.of(
+            "CRAS", List.of("CRAS", "Centro de Referência de Assistência Social"),
+            "UBS", List.of("UBS", "Unidade Básica de Saúde", "Posto de Saúde"),
+            "Farmácia", List.of("farmácia", "drogaria"),
+            "Defensoria", List.of("Defensoria Pública"));
+
+    /** Busca lugares pelo nome no Nominatim, dentro de um quadrado em volta da casa. */
+    List<Map<String, Object>> buscarPorNome(double lat, double lng, String tipo) {
+        double d = RAIO.getOrDefault(tipo, 10000) / 111000.0;
+        String caixa = (lng - d) + "," + (lat + d) + "," + (lng + d) + "," + (lat - d);
+        Map<String, Map<String, Object>> achados = new LinkedHashMap<>();
+        for (String termo : TERMOS.getOrDefault(tipo, List.of())) {
+            JsonNode r = get(nominatim + "/search?format=jsonv2&limit=15&countrycodes=br&bounded=1&viewbox=" + caixa
+                    + "&q=" + URLEncoder.encode(termo, StandardCharsets.UTF_8));
+            if (r == null || !r.isArray()) continue;
+            for (JsonNode e : r) {
+                String completo = e.path("display_name").asText("");
+                String nome = e.path("name").asText("");
+                if (nome.isBlank()) nome = completo.split(",")[0];
+                if (nome.isBlank()) continue;
+                String[] partes = completo.split(",\\s*");
+                String end = String.join(", ", Arrays.asList(partes).subList(Math.min(1, partes.length), Math.min(4, partes.length)));
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id", "osm-" + e.path("osm_type").asText() + "-" + e.path("osm_id").asText());
+                m.put("tipo", tipo);
+                m.put("nome", nome);
+                m.put("endereco", end.isBlank() ? "Endereço no mapa" : end);
+                m.put("horario", "Confira o horário antes de ir");
+                m.put("telefone", "");
+                m.put("obs", "Farmácia".equals(tipo) ? "confira se é credenciada na Farmácia Popular" : null);
+                m.put("lat", e.path("lat").asDouble());
+                m.put("lng", e.path("lon").asDouble());
+                m.put("fonte", "OpenStreetMap");
+                achados.putIfAbsent((String) m.get("id"), m);
+            }
+            if (achados.size() >= 5) break; // já tem o bastante: poupa o serviço (pede uso moderado)
+        }
+        return new ArrayList<>(achados.values());
     }
 
     private List<Map<String, Object>> consultarOsm(double lat, double lng, String tipo) {
@@ -263,7 +308,23 @@ public class LocalizacaoService {
         }
     }
 
+    private long ultimoNominatim = 0;
+
+    /** O Nominatim permite no máximo 1 pedido por segundo: as chamadas a ele esperam a vez. */
+    private synchronized void esperarVezNominatim() {
+        long espera = ultimoNominatim + 1100 - System.currentTimeMillis();
+        if (espera > 0) {
+            try {
+                Thread.sleep(espera);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        ultimoNominatim = System.currentTimeMillis();
+    }
+
     private JsonNode get(String url) {
+        if (url.startsWith(nominatim)) esperarVezNominatim();
         try {
             String s = http.get().uri(java.net.URI.create(url)).retrieve().body(String.class);
             return s == null ? null : om.readTree(s);

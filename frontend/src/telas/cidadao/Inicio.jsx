@@ -1,10 +1,10 @@
 // A1/D1 · Boas-vindas e A2 · Para quem é a consulta.
 import { Link, useNavigate } from 'react-router-dom';
 import CidadaoPagina, { Voltar } from '../../componentes/CidadaoPagina.jsx';
-import { Ic, Interruptor, Linha, Pill } from '../../componentes/ui.jsx';
+import { Ic, Interruptor, Linha, Ouvir, Pill } from '../../componentes/ui.jsx';
 import { useCidadao } from '../../estado/cidadao.jsx';
 import { ativos } from '../../estado/formato.js';
-import { falar, temReconhecimento } from '../../estado/voz.js';
+import { temReconhecimento } from '../../estado/voz.js';
 
 export function Inicio() {
   const { c, res, refazer } = useCidadao();
@@ -12,7 +12,7 @@ export function Inicio() {
   const fala = 'Tem Direito. Descubra a que sua família tem direito. Responda dez perguntas simples. No fim, você recebe a lista do que levar e onde ir. Não pedimos CPF nem senha.';
   return <CidadaoPagina rodape={<>
     <button className="btn pri block" onClick={() => { if (c.feito) refazer(); nav('/modo'); }}>{c.feito ? 'Fazer uma nova triagem' : 'Começar · leva 5 minutos'}</button>
-    <button className="btn block" onClick={() => falar(fala)}><Ic n="speaker" />Ouvir esta tela</button></>}>
+    <Ouvir texto={fala} rotulo="Ouvir esta tela" classe="btn block" /></>}>
     <div className="hero rise">
       <svg viewBox="0 0 520 210" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
         <g stroke="#7FD3A8" strokeOpacity=".1">{Array.from({ length: 15 }, (_, i) => <path key={'v' + i} d={`M${i * 36} 0V210`} />)}{Array.from({ length: 7 }, (_, i) => <path key={'h' + i} d={`M0 ${i * 36}H520`} />)}</g>

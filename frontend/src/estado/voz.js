@@ -1,13 +1,64 @@
 // Voz: leitura em voz alta (speechSynthesis) e resposta falada (SpeechRecognition).
 // "palavras" converte números ditos por extenso ("mil e duzentos") em número, como no protótipo.
 
-export function falar(texto) {
-  if (!('speechSynthesis' in window)) return;
+// Leitura em voz alta. Cuidados para funcionar em celular:
+// - escolhe uma voz em português (no iPhone e no Android, sem voz definida pode sair mudo);
+// - divide o texto em frases curtas (o Chrome para de falar textos longos depois de ~15 s);
+// - guarda as falas numa lista (senão o navegador pode descartar a fala no meio);
+// - só cancela se já houver fala em andamento (no Safari, cancel + speak seguidos às vezes calam).
+const ouvintes = new Set();
+let falando = false;
+let falas = [];
+const avisar = () => ouvintes.forEach(f => f(falando));
+export const ouvirEstadoVoz = f => { ouvintes.add(f); return () => ouvintes.delete(f); };
+export const temLeitura = () => typeof window !== 'undefined' && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
+
+let vozPt = null;
+function escolherVoz() {
+  if (!temLeitura()) return null;
+  const vozes = window.speechSynthesis.getVoices();
+  vozPt = vozes.find(v => /pt[-_]BR/i.test(v.lang)) || vozes.find(v => /^pt/i.test(v.lang)) || null;
+  return vozPt;
+}
+if (temLeitura()) { escolherVoz(); window.speechSynthesis.addEventListener?.('voiceschanged', escolherVoz); }
+
+function pedacos(texto) {
+  const frases = String(texto).replace(/\s+/g, ' ').match(/[^.!?;:]+[.!?;:]*/g) || [String(texto)];
+  const out = [];
+  for (const f of frases) {
+    const t = f.trim(); if (!t) continue;
+    if (out.length && (out[out.length - 1] + ' ' + t).length < 180) out[out.length - 1] += ' ' + t; else out.push(t);
+  }
+  return out;
+}
+
+/** Para a leitura em andamento. */
+export function pararFala() {
+  if (!temLeitura()) return;
+  falas = [];
   window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(String(texto));
-  u.lang = 'pt-BR';
-  u.rate = 0.95;
-  window.speechSynthesis.speak(u);
+  falando = false; avisar();
+}
+
+/** Lê o texto em voz alta. Devolve false se o navegador não tem leitura em voz alta. */
+export function falar(texto) {
+  if (!temLeitura()) return false;
+  const sint = window.speechSynthesis;
+  if (sint.speaking || sint.pending) sint.cancel();
+  if (!vozPt) escolherVoz();
+  falas = pedacos(texto).map((t, i, todos) => {
+    const u = new SpeechSynthesisUtterance(t);
+    u.lang = 'pt-BR';
+    if (vozPt) u.voice = vozPt;
+    u.rate = 0.95;
+    if (i === todos.length - 1) u.onend = () => { falando = false; falas = []; avisar(); };
+    u.onerror = () => { falando = false; avisar(); };
+    return u;
+  });
+  falando = true; avisar();
+  falas.forEach(u => sint.speak(u));
+  sint.resume(); // Chrome às vezes começa "pausado"
+  return true;
 }
 
 export const temReconhecimento = () => typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition);

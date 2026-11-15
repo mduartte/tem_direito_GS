@@ -1,6 +1,7 @@
 // Peças visuais reutilizáveis, com as mesmas classes CSS do protótipo (estilos/prototipo.css).
 import { ICON } from './icones-dados.js';
-import { falar } from '../estado/voz.js';
+import { useEffect, useRef, useState } from 'react';
+import { falar, ouvirEstadoVoz, pararFala } from '../estado/voz.js';
 
 export function Ic({ n, s = 18, c = 'currentColor', w = 1.8 }) {
   return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}><path d={ICON[n] || ICON.doc} /></svg>;
@@ -13,8 +14,23 @@ export function Marca({ s = 28 }) {
 
 export const Pill = ({ t, k = '' }) => <span className={'pill ' + k}>{t}</span>;
 
-export function Ouvir({ texto, rotulo = 'Ouvir' }) {
-  return <button className="btn sm" type="button" onClick={() => falar(texto)}><Ic n="speaker" s={16} />{rotulo}</button>;
+/** Botão de leitura em voz alta: vira "Parar" enquanto lê e explica quando o aparelho não consegue ler. */
+export function Ouvir({ texto, rotulo = 'Ouvir', classe = 'btn sm' }) {
+  const [lendo, setLendo] = useState(false);
+  const [aviso, setAviso] = useState(null);
+  const meu = useRef(false);
+  useEffect(() => ouvirEstadoVoz(f => { if (!f) meu.current = false; setLendo(f && meu.current); }), []);
+  const tocar = () => {
+    if (lendo) { pararFala(); return; }
+    meu.current = true;
+    if (!falar(texto)) { meu.current = false; setAviso('Este navegador não lê em voz alta. Abra o site no Chrome ou no Safari.'); return; }
+    setAviso('Se não ouvir, tire o celular do modo silencioso e aumente o volume.');
+    setTimeout(() => setAviso(null), 6000);
+  };
+  return <span className="col" style={{ gap: 4, display: 'inline-flex', width: classe.includes('block') ? '100%' : undefined }}>
+    <button className={classe} type="button" aria-pressed={lendo} onClick={tocar}><Ic n={lendo ? 'x' : 'speaker'} s={16} />{lendo ? 'Parar' : rotulo}</button>
+    {aviso && <span className="xs muted" role="status">{aviso}</span>}
+  </span>;
 }
 
 export function Interruptor({ ligado, onChange, rotulo }) {
