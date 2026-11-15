@@ -213,6 +213,12 @@ public class LocalizacaoService {
             "Farmácia", List.of("farmácia", "drogaria"),
             "Defensoria", List.of("Defensoria Pública"));
 
+    /** O nome precisa lembrar o tipo de lugar (ignora maiúsculas e acentos comuns). */
+    static final Map<String, String> NOME_VALIDO = Map.of(
+            "CRAS", "(?iu).*(CRAS|Assist[eê]ncia Social).*",
+            "UBS", "(?iu).*(UBS|Sa[uú]de|Cl[ií]nica da Fam[ií]lia|Posto|Policl[ií]nica).*",
+            "Defensoria", "(?iu).*Defensoria.*");
+
     /** Busca lugares pelo nome no Nominatim, dentro de um quadrado em volta da casa. */
     List<Map<String, Object>> buscarPorNome(double lat, double lng, String tipo) {
         double d = RAIO.getOrDefault(tipo, 10000) / 111000.0;
@@ -223,6 +229,10 @@ public class LocalizacaoService {
                     + "&q=" + URLEncoder.encode(termo, StandardCharsets.UTF_8));
             if (r == null || !r.isArray()) continue;
             for (JsonNode e : r) {
+                // A busca por texto também devolve ruas e bairros com o termo no nome ("Ladeira ..."): fora.
+                String classe = e.path("category").asText(e.path("class").asText(""));
+                if (List.of("highway", "place", "boundary", "landuse", "railway").contains(classe)) continue;
+                if (!"Farmácia".equals(tipo) && !e.path("name").asText("").matches(NOME_VALIDO.get(tipo))) continue;
                 String completo = e.path("display_name").asText("");
                 String nome = e.path("name").asText("");
                 if (nome.isBlank()) {
