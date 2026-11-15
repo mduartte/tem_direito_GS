@@ -216,7 +216,7 @@ public class LocalizacaoService {
     /** O nome precisa lembrar o tipo de lugar (ignora maiúsculas e acentos comuns). */
     static final Map<String, String> NOME_VALIDO = Map.of(
             "CRAS", "(?iu).*(CRAS|Assist[eê]ncia Social).*",
-            "UBS", "(?iu).*(UBS|Sa[uú]de|Cl[ií]nica da Fam[ií]lia|Posto|Policl[ií]nica).*",
+            "UBS", "(?iu).*(UBS|Unidade B[aá]sica|Posto de Sa[uú]de|Centro (Municipal )?de Sa[uú]de|Cl[ií]nica da Fam[ií]lia|Unidade de Sa[uú]de|Policl[ií]nica|ESF).*",
             "Defensoria", "(?iu).*Defensoria.*");
 
     /** Busca lugares pelo nome no Nominatim, dentro de um quadrado em volta da casa. */
