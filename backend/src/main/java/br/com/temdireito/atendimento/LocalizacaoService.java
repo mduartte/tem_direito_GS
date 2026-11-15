@@ -209,7 +209,7 @@ public class LocalizacaoService {
     /** Termos de busca por nome, do mais específico ao mais geral. */
     static final Map<String, List<String>> TERMOS = Map.of(
             "CRAS", List.of("CRAS", "Centro de Referência de Assistência Social"),
-            "UBS", List.of("UBS", "Unidade Básica de Saúde", "Posto de Saúde"),
+            "UBS", List.of("UBS", "Unidade Básica de Saúde", "Posto de Saúde", "Centro de Saúde", "Clínica da Família", "Unidade de Saúde da Família"),
             "Farmácia", List.of("farmácia", "drogaria"),
             "Defensoria", List.of("Defensoria Pública"));
 
@@ -225,8 +225,13 @@ public class LocalizacaoService {
             for (JsonNode e : r) {
                 String completo = e.path("display_name").asText("");
                 String nome = e.path("name").asText("");
-                if (nome.isBlank()) nome = completo.split(",")[0];
-                if (nome.isBlank()) continue;
+                if (nome.isBlank()) {
+                    // Sem nome próprio, a primeira parte do endereço costuma ser o número da casa ("124"):
+                    // usa a primeira parte com letras e diz o tipo do lugar.
+                    String rua = Arrays.stream(completo.split(",\\s*")).filter(x -> x.matches(".*\\p{L}.*")).findFirst().orElse("");
+                    if (rua.isBlank()) continue;
+                    nome = ("Farmácia".equals(tipo) ? "Farmácia" : tipo) + " · " + rua;
+                }
                 String[] partes = completo.split(",\\s*");
                 String end = String.join(", ", Arrays.asList(partes).subList(Math.min(1, partes.length), Math.min(4, partes.length)));
                 Map<String, Object> m = new LinkedHashMap<>();
