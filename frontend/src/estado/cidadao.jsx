@@ -6,6 +6,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { triagemApi } from '../api/servicos.js';
 import { paraMotor, respostasVazias } from './perguntas.js';
+import { avaliarLocal } from './motorLocal.js';
+import { assistenteApi } from '../api/servicos.js';
 
 const CHAVE = 'td-cidadao';
 const PREF = 'td-preferencias';
@@ -41,24 +43,30 @@ export function CidadaoProvider({ children }) {
     const corpo = paraMotor(ans);
     const assinatura = JSON.stringify(corpo);
     ultimo.current = assinatura;
+    let r;
     try {
-      const r = await triagemApi.avaliar(corpo);
-      if (ultimo.current === assinatura) { setAval(r); sessao.setItem('td-avaliacao', JSON.stringify(r)); setErro(null); }
-      return r;
-    } catch (e) { setErro(e.message); throw e; }
+      r = await triagemApi.avaliar(corpo);
+    } catch (e) {
+      // Servidor dormindo (plano gratuito), lento ou sem rede: calcula no aparelho com o mesmo motor
+      // (o teste de paridade garante que o resultado é igual ao do servidor com as regras padrão).
+      r = avaliarLocal(corpo);
+      setErro(null);
+    }
+    if (ultimo.current === assinatura) { setAval(r); sessao.setItem('td-avaliacao', JSON.stringify(r)); if (!r.local) setErro(null); }
+    return r;
   }, []);
   useEffect(() => { if (c.feito) avaliar(c.ans).catch(() => {}); }, [c.feito, c.ans, avaliar]);
 
   /** Fecha a triagem: registra o código anônimo (se a pessoa consentiu). */
   const concluir = useCallback(async () => {
     const r = await avaliar(c.ans);
-    let reg = {};
+    // Mostra o resultado na hora; o registro anônimo segue em segundo plano (não segura a tela).
+    setC(x => ({ ...x, feito: true, criado: x.criado || new Date().toISOString() }));
     if (c.consentimento && !c.code) {
-      try {
-        reg = await triagemApi.registrar({ respostas: paraMotor(c.ans), canal: c.usouVoz ? 'App · voz' : 'App', autorizou: c.autorizou, consentimento: true }, c.token);
-      } catch { /* sem rede: segue só no aparelho e tenta de novo depois */ }
+      triagemApi.registrar({ respostas: paraMotor(c.ans), canal: c.usouVoz ? 'App · voz' : 'App', autorizou: c.autorizou, consentimento: true }, c.token)
+        .then(reg => setC(x => ({ ...x, code: reg.codigo || x.code, chave: reg.chave || x.chave })))
+        .catch(() => { /* sem servidor agora: o resultado vale, só não há código para o CRAS */ });
     }
-    setC(x => ({ ...x, feito: true, code: reg.codigo || x.code, chave: reg.chave || x.chave, criado: x.criado || new Date().toISOString() }));
     return r;
   }, [avaliar, c.ans, c.consentimento, c.code, c.usouVoz, c.autorizou, c.token]);
 
@@ -74,6 +82,9 @@ export function CidadaoProvider({ children }) {
     setAval(null);
     setC(novo());
   }, [c.code, c.chave]);
+
+  // Acorda o servidor enquanto a pessoa responde (no plano gratuito ele dorme e leva ~1 min para voltar).
+  useEffect(() => { assistenteApi.sugestoes().catch(() => {}); }, []);
 
   const refazer = useCallback(() => { setAval(null); setC(x => ({ ...novo(), big: x.big, tts: x.tts, conta: x.conta, token: x.token })); }, []);
 

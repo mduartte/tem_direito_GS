@@ -4,8 +4,8 @@ import { api, apiPainel } from './cliente.js';
 const q = o => { const p = new URLSearchParams(); Object.entries(o || {}).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') p.set(k, v); }); const s = p.toString(); return s ? '?' + s : ''; };
 
 export const triagemApi = {
-  avaliar: respostas => api('/triagens/avaliar', { metodo: 'POST', corpo: respostas }),
-  registrar: (dados, token) => api('/triagens', { metodo: 'POST', corpo: dados, token }),
+  avaliar: respostas => api('/triagens/avaliar', { metodo: 'POST', corpo: respostas, tempo: 20000 }),
+  registrar: (dados, token) => api('/triagens', { metodo: 'POST', corpo: dados, token, tempo: 20000 }),
   consultar: (codigo, chave) => api(`/triagens/${codigo}`, { chave }),
   atualizar: (codigo, chave, corpo) => api(`/triagens/${codigo}`, { metodo: 'PATCH', corpo, chave }),
   lembrete: (codigo, chave, corpo) => api(`/triagens/${codigo}/lembretes`, { metodo: 'POST', corpo, chave }),
@@ -32,7 +32,7 @@ export const contaApi = {
 };
 
 export const assistenteApi = {
-  sugestoes: () => api('/assistente/sugestoes'),
+  sugestoes: () => api('/assistente/sugestoes', { tempo: 90000 }),
   perguntar: corpo => api('/assistente/perguntar', { metodo: 'POST', corpo }),
   transcrever: arquivo => { const f = new FormData(); f.append('audio', arquivo); return api('/assistente/transcrever', { metodo: 'POST', corpo: f }); }
 };

@@ -21,3 +21,15 @@ describe('voz', () => {
   it('entende números por extenso', () => { expect(palavras('mil e duzentos')).toBe(1200); expect(palavras('sessenta e sete anos')).toBe(67); });
   it('entende dígitos ditados', () => { expect(numeroFalado('uns 1.200 reais')).toBe(1200); expect(numeroFalado('setecentos e sessenta')).toBe(760); });
 });
+
+import { avaliarLocal } from '../estado/motorLocal.js';
+describe('motor no aparelho (reserva sem servidor)', () => {
+  it('avalia os 29 benefícios e bloqueia os de SP fora de SP', () => {
+    const a = { pessoas: 1, idade: 70, pcd: 'nao', renda: 0, aposent: 'nao', criancas: 'nao', grupos: ['ido'], cad: 'nao', remedio: 'sim', luz: 'sim' };
+    const sp = avaliarLocal({ ...a, cidade: 'São Paulo', uf: 'SP' }), ba = avaliarLocal({ ...a, cidade: 'Salvador', uf: 'BA' });
+    expect(sp.resultado).toHaveLength(29);
+    expect(sp.resultado.find(b => b.id === 'bpci').status).toBe('prov');
+    expect(ba.resultado.filter(b => b.esf && b.esf !== 'Federal').every(b => b.status === 'nao')).toBe(true);
+    expect(sp.kit.length).toBeGreaterThan(0);
+  });
+});
